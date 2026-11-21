@@ -296,6 +296,10 @@ window.addEventListener('contextmenu', (e) => {
     updateClickThrough(state.winX, state.winY);
     return;
   }
+  const rect = canvas.getBoundingClientRect();
+  const cx = (typeof e.clientX === 'number' && e.clientX > 0) ? (e.clientX - rect.left) : state.winX;
+  const cy = (typeof e.clientY === 'number' && e.clientY > 0) ? (e.clientY - rect.top) : state.winY;
+  updateClickThrough(cx, cy);
   if (state.isOverCat && window.bongoAPI) {
     window.bongoAPI.openSettings('shop');
   }
