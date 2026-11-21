@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+debug_capture*.png
+_diag*.js
+_cap_*.js
+diag*.txt

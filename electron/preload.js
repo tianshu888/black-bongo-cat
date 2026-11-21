@@ -1,0 +1,20 @@
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('bongoAPI', {
+  setIgnoreMouse: (ignore) => ipcRenderer.send('set-ignore-mouse', ignore),
+  moveWindow: (dx, dy) => ipcRenderer.send('move-window', { dx, dy }),
+  quitApp: () => ipcRenderer.send('quit-app'),
+  openSettings: () => ipcRenderer.send('open-settings'),
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  updateSettings: (partial) => ipcRenderer.send('update-settings', partial),
+  resetPosition: () => ipcRenderer.send('reset-position'),
+  onSettingsChanged: (cb) => ipcRenderer.on('settings-changed', (_, cfg) => cb(cfg)),
+  onWindowResized: (cb) => ipcRenderer.on('window-resized', (_, dims) => cb(dims)),
+  onAltState: (cb) => ipcRenderer.on('alt-state', (_, down) => cb(down)),
+  onTriggerDemo: (cb) => ipcRenderer.on('trigger-demo', () => cb()),
+  onGlobalMouseMove: (cb) => ipcRenderer.on('global-mouse-move', (_, data) => cb(data)),
+  onGlobalKeyDown: (cb) => ipcRenderer.on('global-key-down', (_, data) => cb(data)),
+  onGlobalKeyUp: (cb) => ipcRenderer.on('global-key-up', (_, data) => cb(data)),
+  onGlobalMouseDown: (cb) => ipcRenderer.on('global-mouse-down', (_, data) => cb(data)),
+  onGlobalMouseUp: (cb) => ipcRenderer.on('global-mouse-up', (_, data) => cb(data))
+});

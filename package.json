@@ -1,0 +1,54 @@
+{
+  "name": "black-bongo-cat",
+  "version": "1.0.0",
+  "author": "BongoCat3D",
+  "description": "Adorable Black Bongo Cat desktop pet with squishy face physics, global key/mouse sync, and popping keycaps",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "build": "electron-builder --win portable"
+  },
+  "build": {
+    "appId": "com.bongocat.desktop3d",
+    "productName": "小黑猫桌宠",
+    "npmRebuild": false,
+    "buildDependenciesFromSource": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "node_modules/**/*",
+      "package.json",
+      "!debug_capture.png",
+      "!启动小黑猫.bat"
+    ],
+    "asarUnpack": [
+      "**/node_modules/uiohook-napi/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/icon.png"
+    },
+    "portable": {
+      "artifactName": "小黑猫桌宠.exe"
+    }
+  },
+  "dependencies": {
+    "three": "^0.187.0",
+    "uiohook-napi": "^1.5.4"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.18.0"
+  }
+}
