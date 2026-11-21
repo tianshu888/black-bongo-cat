@@ -117,19 +117,30 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
     const nextCareer = getCareerInfo(gameState.workXp || 0).current;
     if (nextCareer.level > prevCareer.level) {
+      const bonus = nextCareer.promoteBonus || 0;
+      if (bonus > 0) gameState.coins = Math.max(0, Math.round((gameState.coins || 0) + bonus));
+      gameState.energy = Math.min(100, (gameState.energy ?? 90) + 25);
+      gameState.mood = Math.min(100, (gameState.mood ?? 80) + 15);
+      gameState.isExhausted = false;
       if (window.catSound.playCoin) window.catSound.playCoin();
-      props.spawnFxText(`晋升 ${nextCareer.title}!`, '#a3e635', new THREE.Vector3(0.2, 1.35, 0.5), 0.016, 65);
+      const promoLabel = nextCareer.level === 2 ? `转正啦 ${nextCareer.title}!` : `升职 ${nextCareer.title}!`;
+      props.spawnFxText(promoLabel, '#a3e635', new THREE.Vector3(0.2, 1.38, 0.5), 0.016, 70);
+      if (bonus > 0) {
+        props.spawnFxText(`+${bonus} 红包`, '#fde047', new THREE.Vector3(0.2, 1.12, 0.5), 0.017, 65);
+      }
     }
     behavior.dirtyGameSave = true;
   }
 
   function computeWorkPayout(career) {
     let payout = career.baseCoin;
+    let isCrit = false;
     const moodBonus = (gameState.mood ?? 80) >= 80 ? 0.08 : 0;
     if (Math.random() < career.critChance + moodBonus) {
       payout += Math.max(1, career.critBonus);
+      isCrit = true;
     }
-    return payout;
+    return { payout, isCrit };
   }
 
   function onWorkKey(keyWorldPos) {
@@ -146,7 +157,8 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     const career = getCareerInfo(gameState.workXp || 0).current;
     const hungryPenalty = (gameState.hunger ?? 80) < 15 ? 1.5 : 1.0;
     const comboMult = behavior.comboCount >= 45 ? 1.5 : 1.0;
-    const payout = Math.round(computeWorkPayout(career) * comboMult);
+    const { payout: rawPayout, isCrit } = computeWorkPayout(career);
+    const payout = Math.round(rawPayout * comboMult);
     const staminaDrain = 0.42 * career.staminaCostMult * hungryPenalty;
 
     addStats({ coins: payout, hunger: -0.22, energy: -staminaDrain, workXp: 1, statsDelta: { totalKeys: 1 } });
@@ -154,7 +166,8 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     if (userSettings.showFloatingCoins && keyWorldPos) {
       const p = keyWorldPos.clone();
       p.y += 0.26;
-      props.spawnFxText(`+${payout}`, payout > 1 ? '#facc15' : '#fde047', p, 0.024, 30);
+      const fxText = isCrit ? `爆单+${payout}` : `+${payout}`;
+      props.spawnFxText(fxText, isCrit ? '#fb923c' : (payout > 1 ? '#facc15' : '#fde047'), p, isCrit ? 0.018 : 0.024, 34);
     }
     if ((gameState.energy ?? 0) <= 0) enterExhausted();
     return true;
@@ -172,14 +185,15 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
     const career = getCareerInfo(gameState.workXp || 0).current;
     const hungryPenalty = (gameState.hunger ?? 80) < 15 ? 1.5 : 1.0;
-    const payout = computeWorkPayout(career);
+    const { payout, isCrit } = computeWorkPayout(career);
     const staminaDrain = 0.22 * career.staminaCostMult * hungryPenalty;
 
     addStats({ coins: payout, hunger: -0.10, energy: -staminaDrain, workXp: 1, statsDelta: { totalClicks: 1 } });
     if (userSettings.showFloatingCoins) {
       const p = props.mouseGroup.position.clone();
       p.y += 0.25;
-      props.spawnFxText(`+${payout}`, '#fde047', p, 0.022, 28);
+      const fxText = isCrit ? `爆单+${payout}` : `+${payout}`;
+      props.spawnFxText(fxText, isCrit ? '#fb923c' : '#fde047', p, isCrit ? 0.018 : 0.022, 32);
     }
     if ((gameState.energy ?? 0) <= 0) enterExhausted();
     return true;

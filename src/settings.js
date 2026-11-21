@@ -81,10 +81,11 @@ function renderGameUI(gs) {
   document.getElementById('career-title').textContent = `💼 Lv.${career.level} · ${career.title}`;
   document.getElementById('career-xp').textContent = nextCareer
     ? `${xp} / ${nextCareer.minXp} XP`
-    : `${xp} · 满级`;
+    : `${xp} · 满级BOSS`;
   document.getElementById('bar-career').style.width = `${Math.round(progress * 100)}%`;
+  document.getElementById('career-tagline').textContent = career.tagline || '';
   document.getElementById('career-perk').textContent =
-    `工作 +${career.baseCoin}币/次 · 暴击 ${Math.round(career.critChance * 100)}%(+${career.critBonus}) · 耗体 ${Math.round(career.staminaCostMult * 100)}%`;
+    `工作 +${career.baseCoin}币/次 · 爆单 ${Math.round(career.critChance * 100)}%(+${career.critBonus}) · 耗体 ${Math.round(career.staminaCostMult * 100)}%`;
 
   const lv = getBondLevel(gs.affection || 0);
   const nextXp = (lv * lv) * 25;
