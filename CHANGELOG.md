@@ -3,7 +3,7 @@
 ## v2.3.1 (2026-11-21)
 
 ### 极简界面重设计与零预填入职卡
-- **极简入职登记卡**（[onboarding.html](src/onboarding.html)、[onboarding.js](src/onboarding.js)）：精简为 `412×496` 单页小卡，**全部输入框默认空置零预填**，仅保留 **工牌头像（拍 3D 猫 / 选照片）、铲屎官、宠物名称、宠物花名、血型（A/B/AB/自填）、兴趣爱好、猫咪技能**。
+- **极简入职登记卡**（[onboarding.html](src/onboarding.html)、[onboarding.js](src/onboarding.js)）：精简为 `412×456` 单页小卡，**全部输入框默认空置零预填**，仅保留 **工牌头像（拍 3D 猫 / 选照片）、铲屎官、宠物名称、血型（A/B/AB/自填）、兴趣爱好、猫咪技能**。
 - **档案商店 & 设置全界面去冗余**（[settings.html](src/settings.html)、[settings.js](src/settings.js)、[careers.js](src/careers.js)、[main.js](electron/main.js)）：去掉冗余 emoji 图标、啰嗦副标题与长解释标签，将页签、状态条、小铺、饰品、动作演示、外观与交互开关以及系统托盘菜单统一改为干脆明了的短词名称。
 
 ## v2.3.0 (2026-11-21)

@@ -20,7 +20,6 @@ let localGame = {
   onboarded: false,
   employeeId: 'MC-0001',
   catName: '',
-  petNickname: '',
   ownerName: '',
   bloodType: '',
   skills: '',
@@ -89,8 +88,7 @@ function renderGameUI(gs) {
   if (!gs) return;
   localGame = gs;
   const catName = (gs.catName || '').trim() || '打工喵';
-  const nick = (gs.petNickname || '').trim();
-  titleCatName.textContent = nick ? `${catName} (${nick})` : catName;
+  titleCatName.textContent = catName;
   if (document.activeElement !== catNameInput) {
     catNameInput.value = gs.catName || '';
   }
@@ -109,7 +107,7 @@ function renderGameUI(gs) {
   tierChip.style.color = tier.badgeColor;
 
   const bloodText = (gs.bloodType || '').trim() ? ` · ${gs.bloodType.trim()}` : '';
-  document.getElementById('badge-dept-id').textContent = nick ? `${catName} (${nick})` : catName;
+  document.getElementById('badge-dept-id').textContent = catName;
   document.getElementById('badge-owner-line').textContent = `${gs.employeeId || 'MC-0001'}${bloodText} · 铲屎官：${formatOwnerCall(gs)}`;
   const toTxt = (v) => (Array.isArray(v) ? v.join('、') : (v || '').trim());
   const parts = [];

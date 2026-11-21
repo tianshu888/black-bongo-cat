@@ -43,7 +43,6 @@ const DEFAULT_GAME_STATE = {
   onboarded: false,
   employeeId: 'MC-0001',
   catName: '',
-  petNickname: '',
   ownerName: '',
   bloodType: '',
   skills: '',
@@ -422,7 +421,7 @@ function openOnboardingWindow() {
     : { x: 1000, y: 500, width: BASE_W, height: BASE_H };
   const area = (screen.getDisplayMatching(catBounds) || screen.getPrimaryDisplay()).workArea;
   const ow = 412;
-  const oh = 496;
+  const oh = 456;
   const ox = Math.round(area.x + (area.width - ow) / 2);
   const oy = Math.round(area.y + (area.height - oh) / 2);
 

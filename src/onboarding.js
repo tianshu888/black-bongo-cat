@@ -1,6 +1,5 @@
 const ownerNameEl = document.getElementById('owner-name');
 const catNameEl = document.getElementById('cat-name');
-const petNicknameEl = document.getElementById('pet-nickname');
 const bloodTypeEl = document.getElementById('blood-type');
 const hobbiesEl = document.getElementById('hobbies');
 const skillsEl = document.getElementById('skills');
@@ -12,7 +11,6 @@ let currentGs = {
   onboarded: false,
   ownerName: '',
   catName: '',
-  petNickname: '',
   bloodType: '',
   hobbies: '',
   skills: ''
@@ -47,7 +45,6 @@ function applyState(gs) {
   if (gs.onboarded) {
     ownerNameEl.value = gs.ownerName || '';
     catNameEl.value = gs.catName || '';
-    petNicknameEl.value = gs.petNickname || '';
     bloodTypeEl.value = gs.bloodType || '';
     hobbiesEl.value = toText(gs.hobbies);
     skillsEl.value = toText(gs.skills);
@@ -92,7 +89,6 @@ submitBtn.addEventListener('click', () => {
       employeeId: currentGs.employeeId || 'MC-0001',
       ownerName: ownerNameEl.value.trim(),
       catName: catNameEl.value.trim(),
-      petNickname: petNicknameEl.value.trim(),
       bloodType: bloodTypeEl.value.trim(),
       hobbies: hobbiesEl.value.trim(),
       skills: skillsEl.value.trim(),
