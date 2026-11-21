@@ -1,25 +1,32 @@
+import { getCareerInfo } from './careers.js';
+
 const scaleSlider = document.getElementById('scale-slider');
 const scaleLabel = document.getElementById('scale-label');
 const toastEl = document.getElementById('toast');
+const catNameInput = document.getElementById('cat-name-input');
+const titleCatName = document.getElementById('title-cat-name');
 
 let localCfg = {};
 let localGame = {
+  catName: '打工喵',
   coins: 80,
   hunger: 84,
   mood: 86,
   energy: 92,
   affection: 0,
+  workXp: 0,
+  isExhausted: false,
   inventory: { kibble: 1, churu: 1, can: 0, yarn: 0, wand: 0 },
   unlockedAccessories: ['none'],
   stats: { totalKeys: 0, totalClicks: 0, totalPets: 0, bugsCaught: 0, feedCount: 0 }
 };
 
 const SHOP_ITEMS = [
-  { id: 'kibble', action: 'feedKibble', name: '🥛 脆脆猫粮', price: 20, desc: '饱食 +30 · 咔嚓点啄干粮碗' },
-  { id: 'churu',  action: 'feedChuru',  name: '🥢 鲜香猫条', price: 50, desc: '饱食 +20 心情 +25 亲密 +15 · 伸舌头追舔' },
-  { id: 'can',    action: 'feedCan',    name: '🥫 豪华罐头', price: 120, desc: '饱食 +60 心情 +40 亲密 +25 · 冒爱心盛宴' },
-  { id: 'yarn',   action: 'playYarn',   name: '🧶 毛线球',   price: 40, desc: '心情 +25 亲密 +10 · 滚球互动玩耍' },
-  { id: 'wand',   action: 'playWand',   name: '🎋 羽毛逗猫棒', price: 60, desc: '心情 +35 亲密 +20 · 挥舞逗猫赢奖励' }
+  { id: 'kibble', action: 'feedKibble', name: '🥛 脆脆猫粮', price: 20, desc: '饱食 +35 体力 +35 心情 +6 · 快速填肚回体' },
+  { id: 'churu',  action: 'feedChuru',  name: '🥢 鲜香猫条', price: 50, desc: '饱食 +25 体力 +45 心情 +28 亲密 +18 · 舔食快速醒神' },
+  { id: 'can',    action: 'feedCan',    name: '🥫 豪华罐头', price: 120, desc: '饱食 +75 体力 +100 心情 +45 亲密 +30 · 满血秒回元气' },
+  { id: 'yarn',   action: 'playYarn',   name: '🧶 毛线球',   price: 40, desc: '心情 +25 亲密 +10 体力 -6 · 滚球互动玩耍' },
+  { id: 'wand',   action: 'playWand',   name: '🎋 羽毛逗猫棒', price: 60, desc: '心情 +35 亲密 +20 体力 -8 · 挥舞逗猫赢 +20 币' }
 ];
 
 const ACCESSORIES = [
@@ -60,12 +67,29 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
 function renderGameUI(gs) {
   if (!gs) return;
   localGame = gs;
+  const catName = gs.catName || '打工喵';
+  titleCatName.textContent = catName;
+  if (document.activeElement !== catNameInput) {
+    catNameInput.value = catName;
+  }
+
   document.getElementById('coins-display').textContent = `💰 ${Math.floor(gs.coins || 0)}`;
+  document.getElementById('exhausted-badge').classList.toggle('show', Boolean(gs.isExhausted));
+
+  const xp = Math.floor(gs.workXp || 0);
+  const { current: career, next: nextCareer, progress } = getCareerInfo(xp);
+  document.getElementById('career-title').textContent = `💼 Lv.${career.level} · ${career.title}`;
+  document.getElementById('career-xp').textContent = nextCareer
+    ? `${xp} / ${nextCareer.minXp} XP`
+    : `${xp} · 满级`;
+  document.getElementById('bar-career').style.width = `${Math.round(progress * 100)}%`;
+  document.getElementById('career-perk').textContent =
+    `工作 +${career.baseCoin}币/次 · 暴击 ${Math.round(career.critChance * 100)}%(+${career.critBonus}) · 耗体 ${Math.round(career.staminaCostMult * 100)}%`;
 
   const lv = getBondLevel(gs.affection || 0);
   const nextXp = (lv * lv) * 25;
   document.getElementById('bond-title').textContent = `💕 亲密 Lv.${lv} · ${getBondTitle(lv)}`;
-  document.getElementById('affection-xp').textContent = `${Math.floor(gs.affection || 0)} / ${nextXp}`;
+  document.getElementById('affection-xp').textContent = `${Math.floor(gs.affection || 0)} / ${nextXp} 亲密`;
 
   const setBar = (id, val) => {
     const v = Math.max(0, Math.min(100, Math.round(val || 0)));
@@ -75,6 +99,8 @@ function renderGameUI(gs) {
   setBar('hunger', gs.hunger);
   setBar('mood', gs.mood);
   setBar('energy', gs.energy);
+  const energyFill = document.getElementById('bar-energy');
+  energyFill.style.background = (gs.isExhausted || (gs.energy || 0) <= 15) ? '#ef4444' : '#38bdf8';
 
   const st = gs.stats || {};
   document.getElementById('mini-stats').textContent =
@@ -108,9 +134,10 @@ function renderGameUI(gs) {
     useBtn.addEventListener('click', () => {
       if ((inv[item.id] || 0) <= 0) return;
       const nextInv = { ...(localGame.inventory || {}), [item.id]: inv[item.id] - 1 };
-      pushGameUpdate({ inventory: nextInv });
+      const isFood = item.id === 'kibble' || item.id === 'churu' || item.id === 'can';
+      pushGameUpdate(isFood ? { inventory: nextInv, isExhausted: false } : { inventory: nextInv });
       if (window.bongoAPI) window.bongoAPI.triggerPlayAction({ type: item.action });
-      showToast(`已递出 ${item.name}，快看小黑猫！`);
+      showToast(`已递出 ${item.name}，快看${localGame.catName || '打工喵'}！`);
     });
     shopList.appendChild(row);
   });
@@ -211,6 +238,21 @@ document.querySelectorAll('[data-demo]').forEach((btn) => {
     if (window.bongoAPI) window.bongoAPI.triggerPlayAction({ type: btn.dataset.demo });
     showToast('已触发动作演示~');
   });
+});
+
+function saveCatName() {
+  const clean = (catNameInput.value || '').trim().slice(0, 10) || '打工喵';
+  catNameInput.value = clean;
+  pushGameUpdate({ catName: clean });
+  showToast(`已改名为「${clean}」！`);
+}
+
+document.getElementById('btn-save-name').addEventListener('click', saveCatName);
+catNameInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    catNameInput.blur();
+    saveCatName();
+  }
 });
 
 document.getElementById('btn-reset-pos').addEventListener('click', () => {

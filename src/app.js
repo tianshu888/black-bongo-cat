@@ -159,11 +159,18 @@ function triggerKeyPress(data) {
     props.allKeys3D.find((item) => item.label === data.label) ||
     props.allKeys3D[Math.floor(Math.random() * props.allKeys3D.length)];
 
-  state.activeKeys.set(k.id, performance.now() + 140);
-
   props.keyboardGroup.updateMatrixWorld(true);
   rig.catRoot.updateMatrixWorld(true);
   tempKeyPosWorld.copy(k.localPos).applyMatrix4(props.keyboardGroup.matrixWorld);
+
+  if (!behaviors.canWork()) {
+    if (!data.isRepeat) {
+      behaviors.onWorkKey(tempKeyPosWorld);
+    }
+    return;
+  }
+
+  state.activeKeys.set(k.id, performance.now() + 140);
 
   if (!data.isRepeat) {
     window.catSound.playKeyClick(data.isSpace || k.id === 'Space');
@@ -321,7 +328,7 @@ if (window.bongoAPI) {
     }
 
     const moveDelta = Math.hypot(data.normX - prevNormX, data.normY - prevNormY);
-    if (moveDelta > 0.0006 && !state.isPetting && !state.isDraggingWindow) {
+    if (moveDelta > 0.0006 && !state.isPetting && !state.isDraggingWindow && behaviors.canWork()) {
       behaviors.markActiveWork();
       state.mouseActiveTimer = 70;
       const clampedNx = Math.max(0, Math.min(1, data.normX));
@@ -347,7 +354,8 @@ if (window.bongoAPI) {
   window.bongoAPI.onGlobalMouseDown((data) => {
     if (state.isPetting || state.isDraggingWindow || (state.isOverCat && data.button === 1)) return;
     if (behaviors.behavior.mode === 'feedChuru' || behaviors.behavior.mode === 'playWand') return;
-    behaviors.onWorkClick();
+    const worked = behaviors.onWorkClick();
+    if (!worked) return;
     state.mouseActiveTimer = 80;
     if (data.button === 1) state.mouseLeftDown = true;
     if (data.button === 2) state.mouseRightDown = true;
@@ -485,6 +493,12 @@ function applySettings(cfg) {
 function applyGameState(gs) {
   if (!gs) return;
   Object.assign(gameState, gs);
+  if (gameState.isExhausted && behaviors.behavior.mode === 'work') {
+    behaviors.behavior.mode = 'exhausted';
+    behaviors.behavior.timer = 0;
+  } else if (!gameState.isExhausted && behaviors.behavior.mode === 'exhausted') {
+    behaviors.exitToWork();
+  }
 }
 
 if (window.bongoAPI) {

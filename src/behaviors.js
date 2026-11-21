@@ -1,13 +1,15 @@
 import * as THREE from 'three';
+import { getCareerInfo } from './careers.js';
 
 export function createBehaviorSystem({ rig, props, state, userSettings, gameState, onPersistGame }) {
   const behavior = {
-    mode: 'work', // work | feedKibble | feedCan | feedChuru | playWand | playYarn | groom | stretch | loaf | nap | tailChase | zoomies | bugHunt | boxPeek
+    mode: gameState.isExhausted ? 'exhausted' : 'work', // work | exhausted | feedKibble | feedCan | feedChuru | playWand | playYarn | groom | stretch | loaf | nap | tailChase | zoomies | bugHunt | boxPeek
     timer: 0,
     duration: 0,
     phase: 0,
     lastInputTime: performance.now(),
     nextIdleTrigger: 24000 + Math.random() * 14000,
+    lastExhaustedHint: 0,
 
     // Micro animations
     earTwitchSide: 0, // -1 left, 1 right, 0 none
@@ -46,8 +48,32 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     lastKeyTime: 0
   };
 
+  function canWork() {
+    return !gameState.isExhausted && behavior.mode !== 'exhausted';
+  }
+
+  function enterExhausted() {
+    gameState.energy = 0;
+    gameState.isExhausted = true;
+    hideAllTempProps();
+    behavior.mode = 'exhausted';
+    behavior.timer = 0;
+    if (window.catSound.playYawn) window.catSound.playYawn();
+    props.spawnFxText('累趴啦…回体中', '#f87171', new THREE.Vector3(0.2, 1.05, 0.5), 0.018, 52);
+    onPersistGame(gameState);
+  }
+
+  function onExhaustedTap() {
+    const now = performance.now();
+    if (now - behavior.lastExhaustedHint > 2200) {
+      behavior.lastExhaustedHint = now;
+      props.spawnFxText('💤 回体中 喂食秒醒', '#fca5a5', new THREE.Vector3(0.2, 0.95, 0.5), 0.016, 42);
+    }
+  }
+
   function markActiveWork() {
     behavior.lastInputTime = performance.now();
+    if (!canWork()) return;
     // Typing or working immediately exits autonomous rest/play & vanishes temporary props!
     if (['loaf', 'nap', 'groom', 'stretch', 'tailChase', 'zoomies', 'bugHunt', 'boxPeek', 'playYarn'].includes(behavior.mode)) {
       exitToWork();
@@ -75,50 +101,88 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     hideAllTempProps();
   }
 
-  function addStats({ coins = 0, hunger = 0, mood = 0, energy = 0, affection = 0, statsDelta = null }) {
+  function addStats({ coins = 0, hunger = 0, mood = 0, energy = 0, affection = 0, workXp = 0, statsDelta = null }) {
+    const prevCareer = getCareerInfo(gameState.workXp || 0).current;
     if (coins) gameState.coins = Math.max(0, Math.round((gameState.coins || 0) + coins));
     if (hunger) gameState.hunger = Math.max(0, Math.min(100, (gameState.hunger ?? 80) + hunger));
     if (mood) gameState.mood = Math.max(0, Math.min(100, (gameState.mood ?? 80) + mood));
     if (energy) gameState.energy = Math.max(0, Math.min(100, (gameState.energy ?? 90) + energy));
     if (affection) gameState.affection = Math.max(0, (gameState.affection || 0) + affection);
+    if (workXp) gameState.workXp = Math.max(0, (gameState.workXp || 0) + workXp);
     if (statsDelta) {
       gameState.stats = gameState.stats || {};
       for (const [k, v] of Object.entries(statsDelta)) {
         gameState.stats[k] = (gameState.stats[k] || 0) + v;
       }
     }
+    const nextCareer = getCareerInfo(gameState.workXp || 0).current;
+    if (nextCareer.level > prevCareer.level) {
+      if (window.catSound.playCoin) window.catSound.playCoin();
+      props.spawnFxText(`晋升 ${nextCareer.title}!`, '#a3e635', new THREE.Vector3(0.2, 1.35, 0.5), 0.016, 65);
+    }
     behavior.dirtyGameSave = true;
   }
 
+  function computeWorkPayout(career) {
+    let payout = career.baseCoin;
+    const moodBonus = (gameState.mood ?? 80) >= 80 ? 0.08 : 0;
+    if (Math.random() < career.critChance + moodBonus) {
+      payout += Math.max(1, career.critBonus);
+    }
+    return payout;
+  }
+
   function onWorkKey(keyWorldPos) {
+    if (!canWork()) {
+      onExhaustedTap();
+      return false;
+    }
     markActiveWork();
     const now = performance.now();
     if (now - behavior.lastKeyTime < 1500) behavior.comboCount++;
     else behavior.comboCount = 1;
     behavior.lastKeyTime = now;
 
-    const bonus = behavior.comboCount >= 45 ? 2 : 1;
-    addStats({ coins: bonus, hunger: -0.05, energy: -0.06, statsDelta: { totalKeys: 1 } });
+    const career = getCareerInfo(gameState.workXp || 0).current;
+    const hungryPenalty = (gameState.hunger ?? 80) < 15 ? 1.5 : 1.0;
+    const comboMult = behavior.comboCount >= 45 ? 1.5 : 1.0;
+    const payout = Math.round(computeWorkPayout(career) * comboMult);
+    const staminaDrain = 0.42 * career.staminaCostMult * hungryPenalty;
+
+    addStats({ coins: payout, hunger: -0.22, energy: -staminaDrain, workXp: 1, statsDelta: { totalKeys: 1 } });
 
     if (userSettings.showFloatingCoins && keyWorldPos) {
       const p = keyWorldPos.clone();
       p.y += 0.26;
-      props.spawnFxText(`+${bonus}`, '#fde047', p, 0.024, 30);
+      props.spawnFxText(`+${payout}`, payout > 1 ? '#facc15' : '#fde047', p, 0.024, 30);
     }
+    if ((gameState.energy ?? 0) <= 0) enterExhausted();
+    return true;
   }
 
   function onWorkClick() {
+    if (!canWork()) {
+      onExhaustedTap();
+      return false;
+    }
     markActiveWork();
     const now = performance.now();
-    if (now - behavior.lastClickCoinTime < 180) return; // Anti-macro burst cap
+    if (now - behavior.lastClickCoinTime < 180) return true; // Anti-macro burst cap
     behavior.lastClickCoinTime = now;
 
-    addStats({ coins: 1, energy: -0.03, statsDelta: { totalClicks: 1 } });
+    const career = getCareerInfo(gameState.workXp || 0).current;
+    const hungryPenalty = (gameState.hunger ?? 80) < 15 ? 1.5 : 1.0;
+    const payout = computeWorkPayout(career);
+    const staminaDrain = 0.22 * career.staminaCostMult * hungryPenalty;
+
+    addStats({ coins: payout, hunger: -0.10, energy: -staminaDrain, workXp: 1, statsDelta: { totalClicks: 1 } });
     if (userSettings.showFloatingCoins) {
       const p = props.mouseGroup.position.clone();
       p.y += 0.25;
-      props.spawnFxText('+1', '#fde047', p, 0.022, 28);
+      props.spawnFxText(`+${payout}`, '#fde047', p, 0.022, 28);
     }
+    if ((gameState.energy ?? 0) <= 0) enterExhausted();
+    return true;
   }
 
   let petSessionGain = 0;
@@ -154,16 +218,19 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     behavior.lastInputTime = performance.now();
 
     if (type === 'feedKibble') {
+      gameState.isExhausted = false;
       behavior.duration = 280;
       props.foodBowlGroup.visible = true;
       props.foodBowlGroup.scale.set(0.01, 0.01, 0.01);
       props.foodBowlGroup.position.set(1.48, -0.82, 0.58);
     } else if (type === 'feedCan') {
+      gameState.isExhausted = false;
       behavior.duration = 300;
       props.tunaCanGroup.visible = true;
       props.tunaCanGroup.scale.set(0.01, 0.01, 0.01);
       props.tunaCanGroup.position.set(1.48, -0.82, 0.58);
     } else if (type === 'feedChuru') {
+      gameState.isExhausted = false;
       behavior.duration = 600;
       behavior.churuLicks = 0;
       behavior.churuCooldown = 0;
@@ -256,11 +323,21 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
     // Gentle passive stat drift & rest recovery (~once per second)
     if (behavior.timer % 60 === 0) {
-      if (['loaf', 'nap'].includes(behavior.mode)) {
-        gameState.energy = Math.min(100, (gameState.energy ?? 90) + 1.2);
+      if (behavior.mode === 'exhausted') {
+        const recRate = (gameState.hunger ?? 80) < 15 ? 1.1 : 1.9;
+        gameState.energy = Math.min(100, (gameState.energy ?? 0) + recRate);
+        behavior.dirtyGameSave = true;
+        if (gameState.energy >= 22) {
+          gameState.isExhausted = false;
+          props.spawnFxText('⚡ 恢复精力!', '#a3e635', new THREE.Vector3(0.2, 1.05, 0.5), 0.02, 36);
+          exitToWork();
+        }
+      } else if (['loaf', 'nap'].includes(behavior.mode)) {
+        gameState.energy = Math.min(100, (gameState.energy ?? 90) + 1.5);
+        behavior.dirtyGameSave = true;
       } else {
-        gameState.hunger = Math.max(0, (gameState.hunger ?? 80) - 0.08);
-        gameState.mood = Math.max(0, (gameState.mood ?? 80) - 0.05);
+        gameState.hunger = Math.max(0, (gameState.hunger ?? 80) - 0.06);
+        gameState.mood = Math.max(0, (gameState.mood ?? 80) - 0.04);
       }
       // Check unlockable accessories by bond level
       const lv = Math.max(1, Math.floor(Math.sqrt((gameState.affection || 0) / 25)) + 1);
@@ -328,7 +405,25 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     const t = behavior.timer;
 
     // =========================================================================
-    // 1. FEEDING MODES (Bowl/Can pop in -> Eat -> Fade out!)
+    // 0. EXHAUSTED RESTING (Out of stamina -> slumped flat, slow recovery!)
+    // =========================================================================
+    if (behavior.mode === 'exhausted') {
+      ov.bodyY = -0.17 + Math.sin(t * 0.05) * 0.018;
+      ov.pitch = 0.30 + Math.sin(t * 0.05) * 0.025;
+      ov.roll = 0.05;
+      ov.squint = 0.90;
+      ov.tailSpeed = 0.015;
+      rig.torsoMesh.scale.set(1.08, 0.88, 1.04);
+      ov.rightPawPos = new THREE.Vector3(-0.24, -0.74, 0.54);
+      ov.leftPawPos = new THREE.Vector3(0.24, -0.74, 0.54);
+      if (t % 85 === 25) {
+        props.spawnFxText('Zzz', '#94a3b8', new THREE.Vector3(0.35, 1.05, 0.4), 0.015, 48);
+      }
+      return ov;
+    }
+
+    // =========================================================================
+    // 1. FEEDING MODES (Bowl/Can pop in -> Eat -> Rapid Stamina Recovery!)
     // =========================================================================
     if (behavior.mode === 'feedKibble' || behavior.mode === 'feedCan') {
       const isCan = behavior.mode === 'feedCan';
@@ -361,10 +456,10 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
       if (t >= behavior.duration) {
         if (isCan) {
-          addStats({ hunger: 60, mood: 40, affection: 25, statsDelta: { feedCount: 1 } });
+          addStats({ hunger: 75, energy: 100, mood: 45, affection: 30, statsDelta: { feedCount: 1 } });
           if (window.catSound.playCoin) window.catSound.playCoin();
         } else {
-          addStats({ hunger: 30, mood: 10, affection: 5, statsDelta: { feedCount: 1 } });
+          addStats({ hunger: 35, energy: 35, mood: 6, affection: 5, statsDelta: { feedCount: 1 } });
         }
         onPersistGame(gameState);
         exitToWork();
@@ -406,7 +501,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       }
 
       if (behavior.churuLicks >= 9 || t >= behavior.duration) {
-        addStats({ hunger: 20, mood: 25, affection: 15, statsDelta: { feedCount: 1 } });
+        addStats({ hunger: 25, energy: 45, mood: 28, affection: 18, statsDelta: { feedCount: 1 } });
         if (window.catSound.playCoin) window.catSound.playCoin();
         onPersistGame(gameState);
         exitToWork();
@@ -690,7 +785,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
             props.bugGroup.visible = false;
             if (window.catSound.playSwat) window.catSound.playSwat(true);
             if (window.catSound.playCoin) window.catSound.playCoin();
-            addStats({ coins: 20, mood: 25, affection: 12, statsDelta: { bugsCaught: 1 } });
+            addStats({ coins: 20, mood: 25, affection: 12, energy: -5, workXp: 15, statsDelta: { bugsCaught: 1 } });
             onPersistGame(gameState);
             props.spawnFxText('+20 🦋', '#fde047', new THREE.Vector3(0.25, 0.95, 0.6), 0.022, 46);
             behavior.duration = t + 45;
@@ -729,10 +824,12 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
   return {
     behavior,
+    canWork,
     onWorkKey,
     onWorkClick,
     onPetPulse,
     onPetEnd,
+    onExhaustedTap,
     markActiveWork,
     handleAction,
     handleStageClick,

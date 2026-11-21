@@ -96,6 +96,21 @@
     }
 
     /* Profile & Stat Bars */
+    .name-row { display: flex; align-items: center; gap: 6px; padding-bottom: 6px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .name-label { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
+    .name-input {
+      flex: 1; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 6px; padding: 3px 7px; font-size: 11.5px; font-weight: 600; color: #f8fafc;
+      outline: none; user-select: text;
+    }
+    .name-input:focus { border-color: #a3e635; background: rgba(255,255,255,0.09); }
+    .exhausted-badge {
+      display: none; background: rgba(239, 68, 68, 0.2); color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 99px;
+      padding: 2px 7px; font-size: 10px; font-weight: 600; flex-shrink: 0;
+    }
+    .exhausted-badge.show { display: inline-flex; align-items: center; }
+    .career-perk { font-size: 10.5px; color: #7dd3fc; line-height: 1.35; }
     .stat-bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #cbd5e1; }
     .stat-name { width: 56px; flex-shrink: 0; }
     .bar-bg { flex: 1; height: 7px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
@@ -198,7 +213,7 @@
 </head>
 <body>
   <div class="titlebar">
-    <h1>🐾 小黑猫桌宠</h1>
+    <h1>🐾 <span id="title-cat-name">打工喵</span> · 档案与设置</h1>
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="coin-pill" id="coins-display">💰 80</span>
       <button class="close-btn" id="btn-close">✕</button>
@@ -213,7 +228,19 @@
   <!-- TAB 1: PROFILE, SHOP & TOYS -->
   <div class="tab-pane active" id="pane-shop">
     <div class="section">
+      <div class="name-row">
+        <span class="name-label">🐱 猫名</span>
+        <input class="name-input" id="cat-name-input" type="text" maxlength="10" placeholder="打工喵" />
+        <button class="btn-sm" id="btn-save-name">改名</button>
+        <span class="exhausted-badge" id="exhausted-badge">💤 累趴回体中</span>
+      </div>
       <div class="sec-head">
+        <span id="career-title">💼 Lv.1 · 实习敲键喵</span>
+        <span class="badge" id="career-xp" style="background:rgba(56,189,248,0.16);color:#38bdf8;">0 / 120 XP</span>
+      </div>
+      <div class="bar-bg" style="width:100%;height:6px;flex:none;"><div class="bar-fill" id="bar-career" style="width:0%;background:linear-gradient(90deg,#38bdf8,#a855f7)"></div></div>
+      <div class="career-perk" id="career-perk">基础 +1币/下 · 暴击 5%(+2) · 耗体 100%</div>
+      <div class="sec-head" style="padding-top:3px;border-top:1px solid rgba(255,255,255,0.06);">
         <span id="bond-title">💕 亲密 Lv.1 · 初识萌猫</span>
         <span class="badge" id="affection-xp">0 / 25 亲密</span>
       </div>
@@ -335,6 +362,6 @@
     <button class="foot-btn primary" id="btn-done">完成</button>
   </div>
 
-  <script src="./settings.js"></script>
+  <script type="module" src="./settings.js"></script>
 </body>
 </html>

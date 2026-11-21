@@ -1,6 +1,6 @@
 {
   "name": "black-bongo-cat",
-  "version": "1.0.0",
+  "version": "2.1.0",
   "author": "BongoCat3D",
   "description": "Adorable Black Bongo Cat desktop pet with squishy face physics, global key/mouse sync, and popping keycaps",
   "main": "electron/main.js",

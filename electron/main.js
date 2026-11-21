@@ -38,11 +38,14 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_GAME_STATE = {
+  catName: '打工喵',
   coins: 80,
   hunger: 84,
   mood: 86,
   energy: 92,
   affection: 0,
+  workXp: 0,
+  isExhausted: false,
   inventory: {
     kibble: 1,
     churu: 1,
@@ -234,7 +237,7 @@ function createTray() {
       }
     };
     const buildMenu = () => Menu.buildFromTemplate([
-      { label: `🐾 小猫档案与商店 (💰 ${Math.floor(currentGameState.coins)} 猫币)`, click: () => openSettingsWindow('shop') },
+      { label: `🐾 ${currentGameState.catName || '打工喵'} · 档案与商店 (💰 ${Math.floor(currentGameState.coins)} 猫币)`, click: () => openSettingsWindow('shop') },
       { label: '⚙ 外观与大小设置', click: () => openSettingsWindow('appearance') },
       {
         label: '🎭 互动与动作预览',
