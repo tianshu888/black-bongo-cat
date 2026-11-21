@@ -16,6 +16,33 @@
 <body>
   <div id="pet-container">
     <canvas id="pet-canvas" width="500" height="390"></canvas>
+    <div id="cat-hud" aria-hidden="true">
+      <div class="hud-head">
+        <span id="hud-name">打工喵</span>
+        <span id="hud-level">Lv.1</span>
+      </div>
+      <div class="hud-rank" id="hud-rank">实习打杂喵</div>
+      <div class="hud-row hud-wallet">
+        <span class="hud-lbl">钱包</span>
+        <span class="hud-val" id="hud-coins">120 币</span>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-row"><span class="hud-lbl">经验</span><span class="hud-val" id="hud-xp-txt">0 / 120</span></div>
+        <div class="hud-bar"><div class="hud-fill" id="hud-xp-bar" style="background:#a855f7"></div></div>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-row"><span class="hud-lbl">开心</span><span class="hud-val" id="hud-mood-txt">86</span></div>
+        <div class="hud-bar"><div class="hud-fill" id="hud-mood-bar" style="background:#f472b6"></div></div>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-row"><span class="hud-lbl">饱食</span><span class="hud-val" id="hud-hunger-txt">84</span></div>
+        <div class="hud-bar"><div class="hud-fill" id="hud-hunger-bar" style="background:#f59e0b"></div></div>
+      </div>
+      <div class="hud-stat">
+        <div class="hud-row"><span class="hud-lbl">体力</span><span class="hud-val" id="hud-energy-txt">92</span></div>
+        <div class="hud-bar"><div class="hud-fill" id="hud-energy-bar" style="background:#38bdf8"></div></div>
+      </div>
+    </div>
   </div>
   <script src="./sound.js"></script>
   <script type="module" src="./app.js"></script>

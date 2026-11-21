@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { createCatRig } from './catRig.js';
 import { createProps } from './props.js';
 import { createBehaviorSystem } from './behaviors.js';
+import { getCareerInfo } from './careers.js';
 
 /**
  * Black Bongo Cat 3D Desktop Pet (v2.0)
@@ -111,6 +112,7 @@ const state = {
   isOverProp: false,
   isOverToyProp: false,
   isPetting: false,
+  isPeekingStatus: false,
   isDraggingWindow: false,
   globalAltDown: false,
   dragLastScreen: { x: 0, y: 0 },
@@ -267,6 +269,7 @@ function updateClickThrough(winX, winY) {
     overToy ||
     (overProp && state.globalAltDown) ||
     state.isPetting ||
+    state.isPeekingStatus ||
     state.isDraggingWindow;
 
   if (shouldCapture !== !lastIgnoreMouseState) {
@@ -289,20 +292,45 @@ function updateClickThrough(winX, winY) {
   }
 }
 
+const catHudEl = document.getElementById('cat-hud');
+
+function renderCatHud() {
+  if (!catHudEl) return;
+  const xp = Math.floor(gameState.workXp || 0);
+  const { current: career, next: nextCareer, progress } = getCareerInfo(xp);
+  const s = Math.max(0.7, Math.min(1.25, userSettings.scale || 1));
+  catHudEl.style.transform = `scale(${s})`;
+
+  document.getElementById('hud-name').textContent = (gameState.catName || '').trim() || '打工喵';
+  document.getElementById('hud-level').textContent = `Lv.${career.level}`;
+  document.getElementById('hud-rank').textContent = career.title;
+  document.getElementById('hud-coins').textContent = `${Math.floor(gameState.coins || 0)} 币`;
+  document.getElementById('hud-xp-txt').textContent = nextCareer ? `${xp}/${nextCareer.minXp}` : `${xp} 满级`;
+  document.getElementById('hud-xp-bar').style.width = `${Math.round(progress * 100)}%`;
+
+  const setStat = (key, val, warnLow = false) => {
+    const v = Math.max(0, Math.min(100, Math.round(val || 0)));
+    document.getElementById(`hud-${key}-txt`).textContent = (key === 'energy' && gameState.isExhausted) ? `${v} 回体` : `${v}`;
+    const bar = document.getElementById(`hud-${key}-bar`);
+    bar.style.width = `${v}%`;
+    if (key === 'energy') bar.style.background = (warnLow || v <= 15) ? '#ef4444' : '#38bdf8';
+  };
+  setStat('mood', gameState.mood ?? 86);
+  setStat('hunger', gameState.hunger ?? 84);
+  setStat('energy', gameState.energy ?? 92, Boolean(gameState.isExhausted));
+}
+
+function showCatHud() {
+  renderCatHud();
+  if (catHudEl) catHudEl.classList.add('visible');
+}
+
+function hideCatHud() {
+  if (catHudEl) catHudEl.classList.remove('visible');
+}
+
 window.addEventListener('contextmenu', (e) => {
   e.preventDefault();
-  if (behaviors.behavior.mode === 'feedChuru' || behaviors.behavior.mode === 'playWand') {
-    behaviors.exitToWork();
-    updateClickThrough(state.winX, state.winY);
-    return;
-  }
-  const rect = canvas.getBoundingClientRect();
-  const cx = (typeof e.clientX === 'number' && e.clientX > 0) ? (e.clientX - rect.left) : state.winX;
-  const cy = (typeof e.clientY === 'number' && e.clientY > 0) ? (e.clientY - rect.top) : state.winY;
-  updateClickThrough(cx, cy);
-  if (state.isOverCat && window.bongoAPI) {
-    window.bongoAPI.openSettings('shop');
-  }
 });
 
 // ============================================================================
@@ -360,7 +388,8 @@ if (window.bongoAPI) {
     });
   }
   window.bongoAPI.onGlobalMouseDown((data) => {
-    if (state.isPetting || state.isDraggingWindow || (state.isOverCat && data.button === 1)) return;
+    if (state.isPetting || state.isDraggingWindow || state.isPeekingStatus) return;
+    if (state.isOverCat && (data.button === 1 || data.button === 2)) return;
     if (behaviors.behavior.mode === 'feedChuru' || behaviors.behavior.mode === 'playWand') return;
     const worked = behaviors.onWorkClick();
     if (!worked) return;
@@ -370,22 +399,42 @@ if (window.bongoAPI) {
   });
   window.bongoAPI.onGlobalMouseUp((data) => {
     if (data.button === 1) state.mouseLeftDown = false;
-    if (data.button === 2) state.mouseRightDown = false;
+    if (data.button === 2) {
+      state.mouseRightDown = false;
+      if (state.isPeekingStatus) {
+        state.isPeekingStatus = false;
+        hideCatHud();
+        updateClickThrough(state.winX, state.winY);
+      }
+    }
   });
 }
 
-canvas.addEventListener('mousedown', (e) => {
-  if (e.button === 2 && (behaviors.behavior.mode === 'feedChuru' || behaviors.behavior.mode === 'playWand')) {
-    behaviors.exitToWork();
-    updateClickThrough(state.winX, state.winY);
-    return;
-  }
-  if (e.button !== 0) return;
+let lastAltCatDownTime = 0;
+let altDragDist = 0;
 
+canvas.addEventListener('mousedown', (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
   updateClickThrough(x, y);
+
+  if (e.button === 2) {
+    if (behaviors.behavior.mode === 'feedChuru' || behaviors.behavior.mode === 'playWand') {
+      behaviors.exitToWork();
+      updateClickThrough(x, y);
+      return;
+    }
+    if (state.isOverCat) {
+      state.isPeekingStatus = true;
+      state.mouseRightDown = false;
+      showCatHud();
+      updateClickThrough(x, y);
+    }
+    return;
+  }
+
+  if (e.button !== 0) return;
 
   if (state.isOverToyProp) {
     behaviors.handleStageClick();
@@ -393,6 +442,19 @@ canvas.addEventListener('mousedown', (e) => {
   }
 
   const altHeld = e.altKey || state.globalAltDown;
+  if (altHeld && state.isOverCat) {
+    const nowT = performance.now();
+    if (nowT - lastAltCatDownTime < 480 && altDragDist < 10) {
+      lastAltCatDownTime = 0;
+      altDragDist = 0;
+      state.isDraggingWindow = false;
+      if (window.bongoAPI) window.bongoAPI.openSettings('shop');
+      return;
+    }
+    lastAltCatDownTime = nowT;
+    altDragDist = 0;
+  }
+
   if (altHeld && (state.isOverCat || state.isOverProp) && !userSettings.lockPosition) {
     state.isDraggingWindow = true;
     state.dragLastScreen = { x: e.screenX, y: e.screenY };
@@ -426,6 +488,7 @@ window.addEventListener('mousemove', (e) => {
   if (state.isDraggingWindow && window.bongoAPI) {
     const dx = e.screenX - state.dragLastScreen.x;
     const dy = e.screenY - state.dragLastScreen.y;
+    altDragDist += Math.hypot(dx, dy);
     state.dragLastScreen = { x: e.screenX, y: e.screenY };
     window.bongoAPI.moveWindow(dx, dy);
     return;
@@ -449,6 +512,13 @@ window.addEventListener('mousemove', (e) => {
 });
 
 window.addEventListener('mouseup', (e) => {
+  if (e.button === 2 || e.buttons === 0) {
+    if (state.isPeekingStatus) {
+      state.isPeekingStatus = false;
+      hideCatHud();
+      updateClickThrough(state.winX, state.winY);
+    }
+  }
   if (e.button === 0 || e.buttons === 0) {
     if (state.isPetting) behaviors.onPetEnd();
     state.isPetting = false;
@@ -507,6 +577,7 @@ function applyGameState(gs) {
   } else if (!gameState.isExhausted && behaviors.behavior.mode === 'exhausted') {
     behaviors.exitToWork();
   }
+  if (state.isPeekingStatus) renderCatHud();
 }
 
 if (window.bongoAPI) {
