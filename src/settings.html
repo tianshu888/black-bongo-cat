@@ -124,10 +124,10 @@
       display: flex; align-items: center; justify-content: center;
     }
     .mini-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .mini-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .mini-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
     .mini-meta-top { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #fff; }
     .mini-tier { font-size: 9.5px; padding: 1px 5px; border-radius: 99px; border: 1px solid currentColor; flex-shrink: 0; }
-    .mini-sub { font-size: 10.5px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mini-sub { font-size: 10.5px; color: #cbd5e1; line-height: 1.35; word-break: break-all; white-space: pre-line; }
     .stat-bar-row { display: flex; align-items: center; gap: 8px; font-size: 11px; color: #cbd5e1; }
     .stat-name { width: 56px; flex-shrink: 0; }
     .bar-bg { flex: 1; height: 7px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
@@ -230,16 +230,16 @@
 </head>
 <body>
   <div class="titlebar">
-    <h1>🐾 <span id="title-cat-name">打工喵</span> · 档案与设置</h1>
+    <h1><span id="title-cat-name">打工喵</span> · 档案与设置</h1>
     <div style="display:flex;align-items:center;gap:8px;">
-      <span class="coin-pill" id="coins-display">💰 80</span>
+      <span class="coin-pill" id="coins-display">120 币</span>
       <button class="close-btn" id="btn-close">✕</button>
     </div>
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="shop">🐾 档案与商店</button>
-    <button class="tab-btn" data-tab="appearance">⚙ 外观设置</button>
+    <button class="tab-btn active" data-tab="shop">档案与商店</button>
+    <button class="tab-btn" data-tab="appearance">外观设置</button>
   </div>
 
   <!-- TAB 1: PROFILE, SHOP & TOYS -->
@@ -249,43 +249,42 @@
         <div class="mini-photo" id="mini-badge-photo"></div>
         <div class="mini-meta">
           <div class="mini-meta-top">
-            <span id="badge-dept-id" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">千川剪辑部 · MC-0001</span>
-            <span class="mini-tier" id="badge-tier-chip">INTERN</span>
+            <span id="badge-dept-id" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">打工喵</span>
+            <span class="mini-tier" id="badge-tier-chip">试用期</span>
           </div>
-          <div class="mini-sub" id="badge-owner-line">专属铲屎官</div>
-          <div class="mini-sub" id="badge-traits-line" style="color:#94a3b8;">会翻跟斗 · 钻快递纸箱</div>
+          <div class="mini-sub" id="badge-owner-line">铲屎官</div>
+          <div class="mini-sub" id="badge-traits-line" style="color:#94a3b8;">点右侧补全信息</div>
         </div>
-        <button class="btn-sm" id="btn-open-onboarding" style="flex-shrink:0;">📸 改工牌</button>
+        <button class="btn-sm" id="btn-open-onboarding" style="flex-shrink:0;">改工牌</button>
       </div>
       <div class="name-row">
-        <span class="name-label">🐱 猫名</span>
+        <span class="name-label">猫名</span>
         <input class="name-input" id="cat-name-input" type="text" maxlength="10" placeholder="打工喵" />
         <button class="btn-sm" id="btn-save-name">改名</button>
-        <span class="exhausted-badge" id="exhausted-badge">💤 累趴回体中</span>
+        <span class="exhausted-badge" id="exhausted-badge">回体中</span>
       </div>
       <div class="sec-head">
-        <span id="career-title">💼 Lv.1 · 实习打杂喵</span>
+        <span id="career-title">Lv.1 · 实习打杂喵</span>
         <span class="badge" id="career-xp" style="background:rgba(56,189,248,0.16);color:#38bdf8;">0 / 120 XP</span>
       </div>
       <div class="bar-bg" style="width:100%;height:6px;flex:none;"><div class="bar-fill" id="bar-career" style="width:0%;background:linear-gradient(90deg,#38bdf8,#a855f7)"></div></div>
-      <div id="career-tagline" style="font-size:10.5px;color:#cbd5e1;">试用期摸鱼中 · 导素材/加字幕/求转正</div>
-      <div class="career-perk" id="career-perk">工作 +1币/次 · 爆单 0%(+0) · 耗体 100%</div>
+      <div class="career-perk" id="career-perk">1币/次 · 爆单0% · 耗体100%</div>
       <div class="sec-head" style="padding-top:3px;border-top:1px solid rgba(255,255,255,0.06);">
-        <span id="bond-title">💕 亲密 Lv.1 · 初识萌猫</span>
-        <span class="badge" id="affection-xp">0 / 25 亲密</span>
+        <span id="bond-title">亲密 Lv.1 · 初识萌猫</span>
+        <span class="badge" id="affection-xp">0 / 25</span>
       </div>
       <div class="stat-bar-row">
-        <span class="stat-name">🍗 饱食度</span>
+        <span class="stat-name">饱食度</span>
         <div class="bar-bg"><div class="bar-fill" id="bar-hunger" style="width:84%;background:#f59e0b"></div></div>
         <span class="stat-val" id="val-hunger">84</span>
       </div>
       <div class="stat-bar-row">
-        <span class="stat-name">💖 心情值</span>
+        <span class="stat-name">心情值</span>
         <div class="bar-bg"><div class="bar-fill" id="bar-mood" style="width:86%;background:#f472b6"></div></div>
         <span class="stat-val" id="val-mood">86</span>
       </div>
       <div class="stat-bar-row">
-        <span class="stat-name">⚡ 体力值</span>
+        <span class="stat-name">体力值</span>
         <div class="bar-bg"><div class="bar-fill" id="bar-energy" style="width:92%;background:#38bdf8"></div></div>
         <span class="stat-val" id="val-energy">92</span>
       </div>
@@ -293,27 +292,24 @@
     </div>
 
     <div class="section">
-      <div class="sec-head">
-        <span>🛒 美食与玩具小铺</span>
-        <span style="font-size:10.5px;color:#94a3b8;">仅触发时短暂出现</span>
-      </div>
+      <div class="sec-head"><span>小铺</span></div>
       <div id="shop-list" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
 
     <div class="section">
-      <div class="sec-head"><span>🎀 可解锁小饰品</span></div>
+      <div class="sec-head"><span>饰品</span></div>
       <div class="quick-grid" id="accessory-list"></div>
     </div>
 
     <div class="section">
-      <div class="sec-head"><span>🎬 动作随手互动</span></div>
+      <div class="sec-head"><span>动作演示</span></div>
       <div class="quick-grid">
-        <button class="pill-btn" data-demo="demoLoaf">🍞 揣手手</button>
-        <button class="pill-btn" data-demo="demoGroom">🧼 洗脸</button>
-        <button class="pill-btn" data-demo="demoStretch">🦒 伸懒腰</button>
-        <button class="pill-btn" data-demo="demoNap">😴 趴键盘</button>
-        <button class="pill-btn" data-demo="demoZoomies">💨 跑酷</button>
-        <button class="pill-btn" data-demo="demoBug">🦋 放飞虫</button>
+        <button class="pill-btn" data-demo="demoLoaf">揣手</button>
+        <button class="pill-btn" data-demo="demoGroom">洗脸</button>
+        <button class="pill-btn" data-demo="demoStretch">伸懒腰</button>
+        <button class="pill-btn" data-demo="demoNap">打盹</button>
+        <button class="pill-btn" data-demo="demoZoomies">跑酷</button>
+        <button class="pill-btn" data-demo="demoBug">抓飞虫</button>
       </div>
     </div>
   </div>
@@ -322,31 +318,31 @@
   <div class="tab-pane" id="pane-appearance">
     <div class="section">
       <div class="sec-head">
-        <span>📏 桌宠整体大小</span>
+        <span>大小</span>
         <span class="badge" id="scale-label">100%</span>
       </div>
       <input type="range" id="scale-slider" min="50" max="180" step="5" value="100" />
       <div class="quick-row">
-        <button class="pill-btn" data-scale="0.75">迷你 75%</button>
-        <button class="pill-btn" data-scale="1">标准 100%</button>
-        <button class="pill-btn" data-scale="1.35">大号 135%</button>
+        <button class="pill-btn" data-scale="0.75">75%</button>
+        <button class="pill-btn" data-scale="1">100%</button>
+        <button class="pill-btn" data-scale="1.35">135%</button>
       </div>
     </div>
 
     <div class="section">
-      <div class="sec-head"><span>⌨ 键盘配色主题</span></div>
+      <div class="sec-head"><span>键盘</span></div>
       <div class="swatch-grid" id="kb-themes">
-        <button class="swatch" data-val="classic"><span class="dot" style="background:linear-gradient(135deg,#fff 55%,#f59e0b 55%)"></span>经典白橙</button>
-        <button class="swatch" data-val="sakura"><span class="dot" style="background:linear-gradient(135deg,#fce7f3 55%,#f472b6 55%)"></span>樱花粉白</button>
-        <button class="swatch" data-val="candyPink"><span class="dot" style="background:linear-gradient(135deg,#f9a8d4 55%,#db2777 55%)"></span>草莓甜粉</button>
-        <button class="swatch" data-val="mint"><span class="dot" style="background:linear-gradient(135deg,#ecfdf5 55%,#34d399 55%)"></span>薄荷奶油</button>
-        <button class="swatch" data-val="lavender"><span class="dot" style="background:linear-gradient(135deg,#f3e8ff 55%,#a855f7 55%)"></span>香芋浅紫</button>
-        <button class="swatch" data-val="obsidian"><span class="dot" style="background:linear-gradient(135deg,#27272a 55%,#84cc16 55%)"></span>极客酷黑</button>
+        <button class="swatch" data-val="classic"><span class="dot" style="background:linear-gradient(135deg,#fff 55%,#f59e0b 55%)"></span>经典</button>
+        <button class="swatch" data-val="sakura"><span class="dot" style="background:linear-gradient(135deg,#fce7f3 55%,#f472b6 55%)"></span>樱粉</button>
+        <button class="swatch" data-val="candyPink"><span class="dot" style="background:linear-gradient(135deg,#f9a8d4 55%,#db2777 55%)"></span>草莓</button>
+        <button class="swatch" data-val="mint"><span class="dot" style="background:linear-gradient(135deg,#ecfdf5 55%,#34d399 55%)"></span>薄荷</button>
+        <button class="swatch" data-val="lavender"><span class="dot" style="background:linear-gradient(135deg,#f3e8ff 55%,#a855f7 55%)"></span>香芋</button>
+        <button class="swatch" data-val="obsidian"><span class="dot" style="background:linear-gradient(135deg,#27272a 55%,#84cc16 55%)"></span>酷黑</button>
       </div>
     </div>
 
     <div class="section">
-      <div class="sec-head"><span>🖱 鼠标外壳颜色</span></div>
+      <div class="sec-head"><span>鼠标</span></div>
       <div class="swatch-grid cols-4" id="mouse-colors">
         <button class="swatch compact" data-val="white"><span class="dot" style="background:#ffffff"></span>纯白</button>
         <button class="swatch compact" data-val="pink"><span class="dot" style="background:#f9a8d4"></span>樱粉</button>
@@ -356,12 +352,12 @@
     </div>
 
     <div class="section">
-      <div class="sec-head"><span>🐱 猫咪毛色 & 瞳色</span></div>
+      <div class="sec-head"><span>毛色与瞳色</span></div>
       <div class="swatch-grid cols-4" id="cat-coats">
-        <button class="swatch compact" data-val="black"><span class="dot" style="background:#111116"></span>小黑猫</button>
+        <button class="swatch compact" data-val="black"><span class="dot" style="background:#111116"></span>黑猫</button>
         <button class="swatch compact" data-val="blue"><span class="dot" style="background:#4b5563"></span>蓝猫</button>
-        <button class="swatch compact" data-val="cream"><span class="dot" style="background:#f1f5f9"></span>小白猫</button>
-        <button class="swatch compact" data-val="orange"><span class="dot" style="background:#ea580c"></span>小橘猫</button>
+        <button class="swatch compact" data-val="cream"><span class="dot" style="background:#f1f5f9"></span>白猫</button>
+        <button class="swatch compact" data-val="orange"><span class="dot" style="background:#ea580c"></span>橘猫</button>
       </div>
       <div class="swatch-grid cols-5" id="eye-colors">
         <button class="swatch compact" data-val="lime"><span class="dot" style="background:#a3e635"></span>绿眸</button>
@@ -373,22 +369,22 @@
     </div>
 
     <div class="section">
-      <div class="sec-head"><span>✨ 互动与免打扰开关</span></div>
-      <div class="toggle-row"><span>打字弹出键帽字符</span><div class="switch" data-key="showFloatingKeys"></div></div>
-      <div class="toggle-row"><span>打字/点击飘出 +1 金币</span><div class="switch" data-key="showFloatingCoins"></div></div>
-      <div class="toggle-row"><span>敲击绿光星芒特效</span><div class="switch" data-key="showImpactGlow"></div></div>
-      <div class="toggle-row"><span>专注免打扰 (屏蔽闲暇跑酷/飞虫)</span><div class="switch" data-key="focusNoDisturb"></div></div>
-      <div class="toggle-row"><span>打字与撸猫音效</span><div class="switch" data-key="soundEnabled"></div></div>
-      <div class="toggle-row"><span>窗口永远置顶</span><div class="switch" data-key="alwaysOnTop"></div></div>
-      <div class="toggle-row"><span>锁定位置防误拖</span><div class="switch" data-key="lockPosition"></div></div>
+      <div class="sec-head"><span>交互与显示</span></div>
+      <div class="toggle-row"><span>按键浮标</span><div class="switch" data-key="showFloatingKeys"></div></div>
+      <div class="toggle-row"><span>金币飘字</span><div class="switch" data-key="showFloatingCoins"></div></div>
+      <div class="toggle-row"><span>敲击光效</span><div class="switch" data-key="showImpactGlow"></div></div>
+      <div class="toggle-row"><span>免打扰</span><div class="switch" data-key="focusNoDisturb"></div></div>
+      <div class="toggle-row"><span>音效</span><div class="switch" data-key="soundEnabled"></div></div>
+      <div class="toggle-row"><span>置顶</span><div class="switch" data-key="alwaysOnTop"></div></div>
+      <div class="toggle-row"><span>锁定位置</span><div class="switch" data-key="lockPosition"></div></div>
     </div>
   </div>
 
   <div class="toast" id="toast"></div>
 
   <div class="footer">
-    <button class="foot-btn" id="btn-reset-pos">📍 重置位置</button>
-    <button class="foot-btn" id="btn-reset-all">↺ 恢复默认外观</button>
+    <button class="foot-btn" id="btn-reset-pos">重置位置</button>
+    <button class="foot-btn" id="btn-reset-all">恢复默认</button>
     <button class="foot-btn primary" id="btn-done">完成</button>
   </div>
 

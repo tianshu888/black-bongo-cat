@@ -42,13 +42,12 @@ const DEFAULT_SETTINGS = {
 const DEFAULT_GAME_STATE = {
   onboarded: false,
   employeeId: 'MC-0001',
-  catName: '打工喵',
-  department: '千川剪辑部',
+  catName: '',
+  petNickname: '',
   ownerName: '',
-  ownerCall: '铲屎官',
-  skills: ['会翻跟斗', '会抓虫子'],
-  hobbies: ['钻快递纸箱', '趴热键盘睡觉'],
-  badgeTheme: 'blue',
+  bloodType: '',
+  skills: '',
+  hobbies: '',
   hiredAt: '',
   coins: 120,
   hunger: 84,
@@ -275,26 +274,26 @@ function createTray() {
       }
     };
     const buildMenu = () => Menu.buildFromTemplate([
-      { label: `🐾 ${currentGameState.catName || '打工喵'} · 档案与商店 (💰 ${Math.floor(currentGameState.coins)} 猫币)`, click: () => openSettingsWindow('shop') },
-      { label: '📋 员工工牌 / 入职申请表', click: () => openOnboardingWindow() },
-      { label: '⚙ 外观与大小设置', click: () => openSettingsWindow('appearance') },
+      { label: `${currentGameState.catName || '打工喵'} · 档案与商店 (${Math.floor(currentGameState.coins)} 币)`, click: () => openSettingsWindow('shop') },
+      { label: '工牌与入职信息', click: () => openOnboardingWindow() },
+      { label: '外观设置', click: () => openSettingsWindow('appearance') },
       {
-        label: '🎭 互动与动作预览',
+        label: '动作演示',
         submenu: [
-          { label: '✨ 演示打字', click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('trigger-demo'); } },
+          { label: '演示打字', click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('trigger-demo'); } },
           { type: 'separator' },
-          { label: '🍞 揣手手休息', click: () => sendPlay('demoLoaf') },
-          { label: '🧼 舔爪洗脸', click: () => sendPlay('demoGroom') },
-          { label: '🦒 伸个大懒腰', click: () => sendPlay('demoStretch') },
-          { label: '😴 趴键盘打盹', click: () => sendPlay('demoNap') },
-          { label: '💨 突发跑酷', click: () => sendPlay('demoZoomies') },
-          { label: '🦋 召唤小飞虫', click: () => sendPlay('demoBug') },
-          { label: '📦 快递小纸箱', click: () => sendPlay('demoBox') }
+          { label: '揣手', click: () => sendPlay('demoLoaf') },
+          { label: '洗脸', click: () => sendPlay('demoGroom') },
+          { label: '伸懒腰', click: () => sendPlay('demoStretch') },
+          { label: '打盹', click: () => sendPlay('demoNap') },
+          { label: '跑酷', click: () => sendPlay('demoZoomies') },
+          { label: '抓飞虫', click: () => sendPlay('demoBug') },
+          { label: '钻纸箱', click: () => sendPlay('demoBox') }
         ]
       },
       { type: 'separator' },
       {
-        label: '🧘 专注免打扰 (屏蔽闲暇跑酷/飞虫)',
+        label: '免打扰',
         type: 'checkbox',
         checked: Boolean(currentSettings.focusNoDisturb),
         click: () => {
@@ -306,7 +305,7 @@ function createTray() {
         }
       },
       {
-        label: '🔊 音效开关',
+        label: '音效',
         type: 'checkbox',
         checked: Boolean(currentSettings.soundEnabled),
         click: () => {
@@ -318,7 +317,7 @@ function createTray() {
         }
       },
       {
-        label: '🔒 锁定位置 (Alt+左键拖动)',
+        label: '锁定位置',
         type: 'checkbox',
         checked: Boolean(currentSettings.lockPosition),
         click: () => {
@@ -329,14 +328,14 @@ function createTray() {
           tray.setContextMenu(buildMenu());
         }
       },
-      { label: '📍 重置到右下角', click: () => resetPetPosition() },
-      { label: mainWindow && mainWindow.isVisible() ? '👁 隐藏小猫' : '👁 显示小猫', click: () => {
+      { label: '重置位置', click: () => resetPetPosition() },
+      { label: mainWindow && mainWindow.isVisible() ? '隐藏' : '显示', click: () => {
         if (!mainWindow || mainWindow.isDestroyed()) return;
         if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.showInactive();
         tray.setContextMenu(buildMenu());
       }},
       { type: 'separator' },
-      { label: '✕ 退出桌宠', click: () => app.quit() }
+      { label: '退出', click: () => app.quit() }
     ]);
     tray.setContextMenu(buildMenu());
     tray.on('click', () => openSettingsWindow('shop'));
@@ -422,8 +421,8 @@ function openOnboardingWindow() {
     ? mainWindow.getBounds()
     : { x: 1000, y: 500, width: BASE_W, height: BASE_H };
   const area = (screen.getDisplayMatching(catBounds) || screen.getPrimaryDisplay()).workArea;
-  const ow = 768;
-  const oh = 598;
+  const ow = 412;
+  const oh = 496;
   const ox = Math.round(area.x + (area.width - ow) / 2);
   const oy = Math.round(area.y + (area.height - oh) / 2);
 
@@ -432,7 +431,7 @@ function openOnboardingWindow() {
     height: oh,
     x: ox,
     y: oy,
-    title: '新员工入职申请表 · 喵星短视频电商有限公司',
+    title: '打工喵 · 趣味入职卡',
     resizable: false,
     minimizable: false,
     maximizable: false,

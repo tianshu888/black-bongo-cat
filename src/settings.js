@@ -19,13 +19,12 @@ let badgePhotoUrl = '';
 let localGame = {
   onboarded: false,
   employeeId: 'MC-0001',
-  catName: '打工喵',
-  department: '千川剪辑部',
+  catName: '',
+  petNickname: '',
   ownerName: '',
-  ownerCall: '铲屎官',
-  skills: ['会翻跟斗', '会抓虫子'],
-  hobbies: ['钻快递纸箱', '趴热键盘睡觉'],
-  badgeTheme: 'blue',
+  bloodType: '',
+  skills: '',
+  hobbies: '',
   coins: 120,
   hunger: 84,
   mood: 86,
@@ -89,13 +88,14 @@ document.querySelectorAll('.tab-btn').forEach((btn) => {
 function renderGameUI(gs) {
   if (!gs) return;
   localGame = gs;
-  const catName = gs.catName || '打工喵';
-  titleCatName.textContent = catName;
+  const catName = (gs.catName || '').trim() || '打工喵';
+  const nick = (gs.petNickname || '').trim();
+  titleCatName.textContent = nick ? `${catName} (${nick})` : catName;
   if (document.activeElement !== catNameInput) {
-    catNameInput.value = catName;
+    catNameInput.value = gs.catName || '';
   }
 
-  document.getElementById('coins-display').textContent = `💰 ${Math.floor(gs.coins || 0)}`;
+  document.getElementById('coins-display').textContent = `${Math.floor(gs.coins || 0)} 币`;
   document.getElementById('exhausted-badge').classList.toggle('show', Boolean(gs.isExhausted));
 
   const xp = Math.floor(gs.workXp || 0);
@@ -107,25 +107,31 @@ function renderGameUI(gs) {
   const tierChip = document.getElementById('badge-tier-chip');
   tierChip.textContent = tier.label;
   tierChip.style.color = tier.badgeColor;
-  document.getElementById('badge-dept-id').textContent = gs.department || '千川剪辑部';
-  document.getElementById('badge-owner-line').textContent = `${gs.employeeId || 'MC-0001'} · 专属${formatOwnerCall(gs)}`;
-  const traitText = [...(gs.skills || []), ...(gs.hobbies || [])].slice(0, 4).join(' · ') || '点击右侧录入技能与爱好';
-  document.getElementById('badge-traits-line').textContent = traitText;
+
+  const bloodText = (gs.bloodType || '').trim() ? ` · ${gs.bloodType.trim()}` : '';
+  document.getElementById('badge-dept-id').textContent = nick ? `${catName} (${nick})` : catName;
+  document.getElementById('badge-owner-line').textContent = `${gs.employeeId || 'MC-0001'}${bloodText} · 铲屎官：${formatOwnerCall(gs)}`;
+  const toTxt = (v) => (Array.isArray(v) ? v.join('、') : (v || '').trim());
+  const parts = [];
+  if (toTxt(gs.skills)) parts.push(`技能：${toTxt(gs.skills)}`);
+  if (toTxt(gs.hobbies)) parts.push(`爱好：${toTxt(gs.hobbies)}`);
+  document.getElementById('badge-traits-line').textContent = parts.length
+    ? parts.join('\n')
+    : '点右侧补全信息';
   renderMiniBadgePhoto();
 
-  document.getElementById('career-title').textContent = `💼 Lv.${career.level} · ${career.title}`;
+  document.getElementById('career-title').textContent = `Lv.${career.level} · ${career.title}`;
   document.getElementById('career-xp').textContent = nextCareer
     ? `${xp} / ${nextCareer.minXp} XP`
-    : `${xp} · 满级BOSS`;
+    : `${xp} · 满级`;
   document.getElementById('bar-career').style.width = `${Math.round(progress * 100)}%`;
-  document.getElementById('career-tagline').textContent = career.tagline || '';
   document.getElementById('career-perk').textContent =
-    `工作 +${career.baseCoin}币/次 · 爆单 ${Math.round(career.critChance * 100)}%(+${career.critBonus}) · 耗体 ${Math.round(career.staminaCostMult * 100)}%`;
+    `${career.baseCoin}币/次 · 爆单${Math.round(career.critChance * 100)}%(+${career.critBonus}) · 耗体${Math.round(career.staminaCostMult * 100)}%`;
 
   const lv = getBondLevel(gs.affection || 0);
   const nextXp = (lv * lv) * 25;
-  document.getElementById('bond-title').textContent = `💕 亲密 Lv.${lv} · ${getBondTitle(lv)}`;
-  document.getElementById('affection-xp').textContent = `${Math.floor(gs.affection || 0)} / ${nextXp} 亲密`;
+  document.getElementById('bond-title').textContent = `亲密 Lv.${lv} · ${getBondTitle(lv)}`;
+  document.getElementById('affection-xp').textContent = `${Math.floor(gs.affection || 0)} / ${nextXp}`;
 
   const setBar = (id, val) => {
     const v = Math.max(0, Math.min(100, Math.round(val || 0)));
@@ -156,7 +162,7 @@ function renderGameUI(gs) {
         <div class="item-desc">${item.desc}</div>
       </div>
       <div class="item-actions">
-        <button class="btn-sm buy" ${(gs.coins || 0) < item.price ? 'disabled' : ''}>${item.price} 币购</button>
+        <button class="btn-sm buy" ${(gs.coins || 0) < item.price ? 'disabled' : ''}>${item.price} 币</button>
         <button class="btn-sm use" ${count <= 0 ? 'disabled' : ''}>使用</button>
       </div>
     `;

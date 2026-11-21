@@ -62,46 +62,19 @@ export const CAREERS = [
 ];
 
 export const SHOP_ITEMS = [
-  { id: 'kibble', action: 'feedKibble', name: '🥛 脆脆猫粮',   price: 80,  desc: '饱食 +35 体力 +35 心情 +6 · 日常平价工作餐' },
-  { id: 'churu',  action: 'feedChuru',  name: '🥢 鲜香猫条',   price: 260, desc: '饱食 +25 体力 +45 心情 +28 亲密 +18 · 舔食快速醒神' },
-  { id: 'can',    action: 'feedCan',    name: '🥫 豪华罐头',   price: 680, desc: '饱食 +75 体力 +100 心情 +45 亲密 +30 · 满血盛宴霸总餐' },
-  { id: 'yarn',   action: 'playYarn',   name: '🧶 毛线球',     price: 120, desc: '心情 +25 亲密 +10 体力 -6 · 滚球互动解压' },
-  { id: 'wand',   action: 'playWand',   name: '🎋 羽毛逗猫棒', price: 220, desc: '心情 +35 亲密 +20 经验 +15 · 挥舞赢身价奖金' }
+  { id: 'kibble', action: 'feedKibble', name: '脆脆猫粮', price: 80,  desc: '饱食+35  体力+35  心情+6' },
+  { id: 'churu',  action: 'feedChuru',  name: '鲜香猫条', price: 260, desc: '饱食+25  体力+45  心情+28  亲密+18' },
+  { id: 'can',    action: 'feedCan',    name: '豪华罐头', price: 680, desc: '饱食+75  体力+100  心情+45  亲密+30' },
+  { id: 'yarn',   action: 'playYarn',   name: '毛线球',   price: 120, desc: '心情+25  亲密+10  体力-6' },
+  { id: 'wand',   action: 'playWand',   name: '逗猫棒',   price: 220, desc: '心情+35  亲密+20  经验+15' }
 ];
 
 export const ACCESSORIES = [
-  { id: 'none',       label: '无饰品',       levelReq: 1, price: 0 },
-  { id: 'bell',       label: '🔔 金铃铛',   levelReq: 2, price: 180 },
-  { id: 'bowtie',     label: '🎀 蝴蝶结',   levelReq: 4, price: 480 },
-  { id: 'headphones', label: '🎧 小耳机',   levelReq: 6, price: 1200 },
-  { id: 'beret',      label: '🎨 贝雷帽',   levelReq: 8, price: 2800 }
-];
-
-export const OWNER_CALL_PRESETS = ['铲屎官', '饲养员', '大老板', '人类奴才', '爸爸', '妈妈'];
-export const DEPARTMENTS = ['千川剪辑部', '爆款策划组', '剧情导演部', '投流操盘组', '摸鱼特勤队'];
-
-export const SKILL_PRESETS = [
-  '会翻跟斗',
-  '会抓虫子',
-  '抓老鼠高手',
-  '会自己开门',
-  '踩奶小能手',
-  '单爪拍毛线',
-  '会喵喵顶嘴'
-];
-
-export const HOBBY_PRESETS = [
-  '钻快递纸箱',
-  '半夜三点跑酷',
-  '趴热键盘睡觉',
-  '晒太阳揣手手',
-  '偷舔人类水杯',
-  '追红点摇屁股',
-  '对镜子炸毛哈气'
-];
-
-export const RANDOM_CAT_NAMES = [
-  '黑煤球', '旺财喵', '千川小剪', '跑酷大魔王', '罐头收割机', '粘人黑团子', '招财小黑'
+  { id: 'none',       label: '无饰品', levelReq: 1, price: 0 },
+  { id: 'bell',       label: '金铃铛', levelReq: 2, price: 180 },
+  { id: 'bowtie',     label: '蝴蝶结', levelReq: 4, price: 480 },
+  { id: 'headphones', label: '小耳机', levelReq: 6, price: 1200 },
+  { id: 'beret',      label: '贝雷帽', levelReq: 8, price: 2800 }
 ];
 
 export function getCareerInfo(workXp = 0) {
@@ -123,7 +96,7 @@ export function getBadgeTier(level = 1) {
   if (level >= 9) {
     return {
       key: 'boss',
-      label: 'BOSS · 合伙人',
+      label: 'BOSS',
       badgeColor: '#fbbf24',
       border: 'rgba(251, 191, 36, 0.55)',
       bg: 'linear-gradient(135deg, rgba(39,39,42,0.96), rgba(120,53,15,0.45))'
@@ -132,7 +105,7 @@ export function getBadgeTier(level = 1) {
   if (level >= 6) {
     return {
       key: 'pro',
-      label: 'PRO · 核心骨干',
+      label: '骨干',
       badgeColor: '#c084fc',
       border: 'rgba(192, 132, 252, 0.52)',
       bg: 'linear-gradient(135deg, rgba(49,46,129,0.58), rgba(88,28,135,0.46))'
@@ -141,7 +114,7 @@ export function getBadgeTier(level = 1) {
   if (level >= 2) {
     return {
       key: 'verified',
-      label: 'VERIFIED · 已转正',
+      label: '已转正',
       badgeColor: '#38bdf8',
       border: 'rgba(56, 189, 248, 0.45)',
       bg: 'linear-gradient(135deg, rgba(15,23,42,0.92), rgba(3,105,161,0.42))'
@@ -149,7 +122,7 @@ export function getBadgeTier(level = 1) {
   }
   return {
     key: 'intern',
-    label: 'INTERN · 试用期',
+    label: '试用期',
     badgeColor: '#94a3b8',
     border: 'rgba(148, 163, 184, 0.38)',
     bg: 'linear-gradient(135deg, rgba(30,41,59,0.88), rgba(51,65,85,0.46))'
@@ -157,14 +130,9 @@ export function getBadgeTier(level = 1) {
 }
 
 export function formatOwnerCall(gs = {}) {
-  const call = (gs.ownerCall || '').trim();
-  const name = (gs.ownerName || '').trim();
-  if (call && name) return `${call}${name}`;
-  return call || name || '铲屎官';
+  return (gs.ownerName || '').trim() || '铲屎官';
 }
 
 export function getShortOwnerCall(gs = {}) {
-  const call = (gs.ownerCall || '').trim();
-  const name = (gs.ownerName || '').trim();
-  return call || name || '铲屎官';
+  return (gs.ownerName || '').trim() || '铲屎官';
 }
