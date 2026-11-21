@@ -22,11 +22,14 @@
 
 ## 目录结构
 
-- `electron/main.js`：无边框非激活桌宠窗口、系统托盘菜单、全局键鼠钩子（`uiohook-napi`）、设置持久化与独立设置窗口
+- `electron/main.js`：无边框非激活桌宠窗口、系统托盘菜单、全局键鼠钩子（`uiohook-napi`）、设置/养成数据持久化
 - `electron/preload.js`：安全的 `contextBridge` 渲染进程通信接口
-- `src/index.html` / `src/style.css` / `src/app.js`：Three.js 3D 小黑猫场景、定制 GLSL 着色器、IK 手臂与交互物理主循环
-- `src/settings.html` / `src/settings.js`：独立深色毛玻璃自定义设置界面
-- `src/sound.js`：Web Audio API 合成机械键盘点击、呼噜与喵叫音效
+- `src/catRig.js`：Three.js 3D 猫身骨骼、定制 GLSL 着色器、3D 小舌头、腮红、瞳孔缩放与解锁饰品
+- `src/props.js`：3D 键盘/鼠标与按需短暂生成的猫粮碗/猫条/罐头/逗猫棒/毛线球/飞虫/纸箱特效
+- `src/behaviors.js`：打工经济系统 + 12 种自主行为（洗脸/伸懒腰/揣手/打盹/追尾/跑酷/抓虫）状态机
+- `src/app.js`：主场景组装、点击穿透、左键舒服撸猫与动画主循环
+- `src/settings.html` / `src/settings.js`：双页签独立窗口（`🐾 档案与商店` + `⚙ 外观设置`）
+- `src/sound.js`：Web Audio API 合成打字、呼噜、喵叫、咔嚓吃粮、舔猫条、铃铛等全套音效
 - `assets/icon.png`：256×256 应用图标
 - `启动小黑猫.bat`：开发态一键启动脚本（清理冲突的 `ELECTRON*` 环境变量）
 

@@ -17,8 +17,8 @@ if (!gotLock) {
   });
 }
 
-const BASE_W = 360;
-const BASE_H = 334;
+const BASE_W = 500;
+const BASE_H = 390;
 
 const DEFAULT_SETTINGS = {
   scale: 1.0,
@@ -26,12 +26,38 @@ const DEFAULT_SETTINGS = {
   mouseColor: 'white',
   catCoat: 'black',
   eyeColor: 'lime',
+  equippedAccessory: 'none',
   showFloatingKeys: true,
+  showFloatingCoins: true,
   showImpactGlow: true,
+  focusNoDisturb: false,
   soundEnabled: true,
   alwaysOnTop: true,
   lockPosition: false,
   windowPos: null
+};
+
+const DEFAULT_GAME_STATE = {
+  coins: 80,
+  hunger: 84,
+  mood: 86,
+  energy: 92,
+  affection: 0,
+  inventory: {
+    kibble: 1,
+    churu: 1,
+    can: 0,
+    yarn: 0,
+    wand: 0
+  },
+  unlockedAccessories: ['none'],
+  stats: {
+    totalKeys: 0,
+    totalClicks: 0,
+    totalPets: 0,
+    bugsCaught: 0,
+    feedCount: 0
+  }
 };
 
 let mainWindow = null;
@@ -39,9 +65,14 @@ let settingsWindow = null;
 let tray = null;
 let uIOhook = null;
 let currentSettings = { ...DEFAULT_SETTINGS };
+let currentGameState = JSON.parse(JSON.stringify(DEFAULT_GAME_STATE));
 
 function getSettingsPath() {
   return path.join(app.getPath('userData'), 'bongo-settings.json');
+}
+
+function getGameStatePath() {
+  return path.join(app.getPath('userData'), 'bongo-game.json');
 }
 
 function loadSettings() {
@@ -58,6 +89,21 @@ function loadSettings() {
   } catch (err) {
     console.warn('[BongoCat] Failed to load settings:', err.message);
   }
+  try {
+    const gp = getGameStatePath();
+    if (fs.existsSync(gp)) {
+      const parsed = JSON.parse(fs.readFileSync(gp, 'utf8'));
+      currentGameState = {
+        ...DEFAULT_GAME_STATE,
+        ...parsed,
+        inventory: { ...DEFAULT_GAME_STATE.inventory, ...(parsed.inventory || {}) },
+        stats: { ...DEFAULT_GAME_STATE.stats, ...(parsed.stats || {}) },
+        unlockedAccessories: Array.isArray(parsed.unlockedAccessories) ? parsed.unlockedAccessories : ['none']
+      };
+    }
+  } catch (err) {
+    console.warn('[BongoCat] Failed to load game state:', err.message);
+  }
 }
 
 function saveSettings() {
@@ -65,6 +111,14 @@ function saveSettings() {
     fs.writeFileSync(getSettingsPath(), JSON.stringify(currentSettings, null, 2));
   } catch (err) {
     console.warn('[BongoCat] Failed to save settings:', err.message);
+  }
+}
+
+function saveGameState() {
+  try {
+    fs.writeFileSync(getGameStatePath(), JSON.stringify(currentGameState, null, 2));
+  } catch (err) {
+    console.warn('[BongoCat] Failed to save game state:', err.message);
   }
 }
 
@@ -173,12 +227,42 @@ function createTray() {
   if (tray) return;
   try {
     tray = new Tray(createCatTrayIcon());
-    tray.setToolTip('小黑猫 3D 桌宠 (点击打开设置 | 右键更多)');
+    tray.setToolTip('小黑猫 3D 桌宠 (点击打开档案与商店 | 右键更多)');
+    const sendPlay = (type) => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('play-action', { type });
+      }
+    };
     const buildMenu = () => Menu.buildFromTemplate([
-      { label: '⚙ 自定义设置 (大小 / 粉键盘 / 配色)', click: () => openSettingsWindow() },
-      { label: '✨ 演示打字', click: () => {
-        if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('trigger-demo');
-      }},
+      { label: `🐾 小猫档案与商店 (💰 ${Math.floor(currentGameState.coins)} 猫币)`, click: () => openSettingsWindow('shop') },
+      { label: '⚙ 外观与大小设置', click: () => openSettingsWindow('appearance') },
+      {
+        label: '🎭 互动与动作预览',
+        submenu: [
+          { label: '✨ 演示打字', click: () => { if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('trigger-demo'); } },
+          { type: 'separator' },
+          { label: '🍞 揣手手休息', click: () => sendPlay('demoLoaf') },
+          { label: '🧼 舔爪洗脸', click: () => sendPlay('demoGroom') },
+          { label: '🦒 伸个大懒腰', click: () => sendPlay('demoStretch') },
+          { label: '😴 趴键盘打盹', click: () => sendPlay('demoNap') },
+          { label: '💨 突发跑酷', click: () => sendPlay('demoZoomies') },
+          { label: '🦋 召唤小飞虫', click: () => sendPlay('demoBug') },
+          { label: '📦 快递小纸箱', click: () => sendPlay('demoBox') }
+        ]
+      },
+      { type: 'separator' },
+      {
+        label: '🧘 专注免打扰 (屏蔽闲暇跑酷/飞虫)',
+        type: 'checkbox',
+        checked: Boolean(currentSettings.focusNoDisturb),
+        click: () => {
+          currentSettings.focusNoDisturb = !currentSettings.focusNoDisturb;
+          saveSettings();
+          if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('settings-changed', currentSettings);
+          if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send('settings-changed', currentSettings);
+          tray.setContextMenu(buildMenu());
+        }
+      },
       {
         label: '🔊 音效开关',
         type: 'checkbox',
@@ -206,14 +290,14 @@ function createTray() {
       { label: '📍 重置到右下角', click: () => resetPetPosition() },
       { label: mainWindow && mainWindow.isVisible() ? '👁 隐藏小猫' : '👁 显示小猫', click: () => {
         if (!mainWindow || mainWindow.isDestroyed()) return;
-        if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.show();
+        if (mainWindow.isVisible()) mainWindow.hide(); else mainWindow.showInactive();
         tray.setContextMenu(buildMenu());
       }},
       { type: 'separator' },
       { label: '✕ 退出桌宠', click: () => app.quit() }
     ]);
     tray.setContextMenu(buildMenu());
-    tray.on('click', () => openSettingsWindow());
+    tray.on('click', () => openSettingsWindow('shop'));
     tray.on('right-click', () => tray.setContextMenu(buildMenu()));
   } catch (err) {
     console.warn('[BongoCat] Tray init skipped:', err.message);
@@ -241,19 +325,20 @@ function resetPetPosition() {
   mainWindow.setPosition(def.x, def.y);
 }
 
-function openSettingsWindow() {
+function openSettingsWindow(initialTab = 'shop') {
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     settingsWindow.show();
     settingsWindow.focus();
+    if (initialTab) settingsWindow.webContents.send('switch-tab', initialTab);
     return;
   }
   const catBounds = mainWindow && !mainWindow.isDestroyed()
     ? mainWindow.getBounds()
-    : { x: 1200, y: 500, width: 360, height: 334 };
+    : { x: 1200, y: 500, width: BASE_W, height: BASE_H };
   const area = (screen.getDisplayMatching(catBounds) || screen.getPrimaryDisplay()).workArea;
-  const sw = 340;
-  const sh = 540;
-  const sx = Math.max(area.x + 12, Math.min(area.x + area.width - sw - 12, catBounds.x - sw - 16));
+  const sw = 384;
+  const sh = 610;
+  const sx = Math.max(area.x + 12, Math.min(area.x + area.width - sw - 12, catBounds.x - sw - 12));
   const sy = Math.max(area.y + 12, Math.min(area.y + area.height - sh - 12, catBounds.y + catBounds.height - sh));
 
   settingsWindow = new BrowserWindow({
@@ -261,7 +346,7 @@ function openSettingsWindow() {
     height: sh,
     x: sx,
     y: sy,
-    title: '小黑猫桌宠 · 自定义设置',
+    title: '小黑猫桌宠 · 档案商店与设置',
     resizable: false,
     minimizable: false,
     maximizable: false,
@@ -277,6 +362,11 @@ function openSettingsWindow() {
   });
   settingsWindow.setMenu(null);
   settingsWindow.loadFile(path.join(__dirname, '../src/settings.html'));
+  settingsWindow.webContents.once('did-finish-load', () => {
+    settingsWindow.webContents.send('switch-tab', initialTab);
+    settingsWindow.webContents.send('settings-changed', currentSettings);
+    settingsWindow.webContents.send('game-state-changed', currentGameState);
+  });
   settingsWindow.on('closed', () => { settingsWindow = null; });
 }
 
@@ -336,6 +426,7 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.send('window-resized', { width: winW, height: winH });
     mainWindow.webContents.send('settings-changed', currentSettings);
+    mainWindow.webContents.send('game-state-changed', currentGameState);
   });
 
   mainWindow.on('closed', () => {
@@ -360,9 +451,33 @@ ipcMain.on('move-window', (event, { dx, dy }) => {
 });
 
 ipcMain.handle('get-settings', () => currentSettings);
+ipcMain.handle('get-game-state', () => currentGameState);
 
-ipcMain.on('open-settings', () => openSettingsWindow());
+ipcMain.on('open-settings', (_, tab) => openSettingsWindow(tab || 'shop'));
 ipcMain.on('reset-position', () => resetPetPosition());
+
+ipcMain.on('update-game-state', (event, partial) => {
+  if (!partial) return;
+  currentGameState = {
+    ...currentGameState,
+    ...partial,
+    inventory: partial.inventory ? { ...currentGameState.inventory, ...partial.inventory } : currentGameState.inventory,
+    stats: partial.stats ? { ...currentGameState.stats, ...partial.stats } : currentGameState.stats
+  };
+  saveGameState();
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('game-state-changed', currentGameState);
+  }
+  if (settingsWindow && !settingsWindow.isDestroyed()) {
+    settingsWindow.webContents.send('game-state-changed', currentGameState);
+  }
+});
+
+ipcMain.on('trigger-play-action', (event, action) => {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('play-action', action);
+  }
+});
 
 ipcMain.on('update-settings', (event, partial) => {
   const prevScale = currentSettings.scale;

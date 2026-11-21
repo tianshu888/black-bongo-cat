@@ -125,6 +125,127 @@ class CatSoundEngine {
     osc.start(now);
     osc.stop(now + 0.038);
   }
+
+  // Crisp dry kibble crunch ("咔嚓")
+  playCrunch() {
+    if (this.muted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const bufferSize = this.ctx.sampleRate * 0.055;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.35));
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.value = 1800 + Math.random() * 700;
+    filter.Q.value = 2.2;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+    noise.start(now);
+  }
+
+  // Cute wet lick ("啾~") for Churu treat / grooming
+  playLick() {
+    if (this.muted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(420, now);
+    osc.frequency.exponentialRampToValueAtTime(760, now + 0.055);
+    gain.gain.setValueAtTime(0.065, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.07);
+  }
+
+  // Feather wand tiny gold bell jingle
+  playBell() {
+    if (this.muted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    [2450, 3680].forEach((freq, idx) => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq + Math.random() * 80, now);
+      gain.gain.setValueAtTime(idx === 0 ? 0.055 : 0.035, now);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + 0.16);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.17);
+    });
+  }
+
+  // Soft paw bap/swat
+  playSwat(hit = true) {
+    if (this.muted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(hit ? 380 : 220, now);
+    osc.frequency.exponentialRampToValueAtTime(hit ? 140 : 95, now + 0.065);
+    gain.gain.setValueAtTime(hit ? 0.13 : 0.07, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.075);
+  }
+
+  // Pleasant bonus coin/reward chime (used on catching bugs / mini victories)
+  playCoin() {
+    if (this.muted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    [880, 1318.5].forEach((freq, idx) => {
+      const t = now + idx * 0.065;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.09, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.19);
+    });
+  }
+
+  // Sleepy kitty stretch yawn
+  playYawn() {
+    if (this.muted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(480, now);
+    osc.frequency.exponentialRampToValueAtTime(680, now + 0.18);
+    osc.frequency.exponentialRampToValueAtTime(360, now + 0.55);
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.07, now + 0.14);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.58);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.6);
+  }
 }
 
 window.catSound = new CatSoundEngine();
