@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { getCareerInfo } from './careers.js';
+import { getCareerInfo, getShortOwnerCall } from './careers.js';
 
 export function createBehaviorSystem({ rig, props, state, userSettings, gameState, onPersistGame }) {
   const behavior = {
@@ -59,7 +59,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     behavior.mode = 'exhausted';
     behavior.timer = 0;
     if (window.catSound.playYawn) window.catSound.playYawn();
-    props.spawnFxText('累趴啦…回体中', '#f87171', new THREE.Vector3(0.2, 1.05, 0.5), 0.018, 52);
+    props.spawnFxText(`${getShortOwnerCall(gameState)}，累趴啦💤`, '#f87171', new THREE.Vector3(0.2, 1.05, 0.5), 0.017, 52);
     onPersistGame(gameState);
   }
 
@@ -67,7 +67,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     const now = performance.now();
     if (now - behavior.lastExhaustedHint > 2200) {
       behavior.lastExhaustedHint = now;
-      props.spawnFxText('💤 回体中 喂食秒醒', '#fca5a5', new THREE.Vector3(0.2, 0.95, 0.5), 0.016, 42);
+      props.spawnFxText(`${getShortOwnerCall(gameState)}喂食秒醒💤`, '#fca5a5', new THREE.Vector3(0.2, 0.95, 0.5), 0.016, 42);
     }
   }
 
@@ -123,8 +123,9 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       gameState.mood = Math.min(100, (gameState.mood ?? 80) + 15);
       gameState.isExhausted = false;
       if (window.catSound.playCoin) window.catSound.playCoin();
-      const promoLabel = nextCareer.level === 2 ? `转正啦 ${nextCareer.title}!` : `升职 ${nextCareer.title}!`;
-      props.spawnFxText(promoLabel, '#a3e635', new THREE.Vector3(0.2, 1.38, 0.5), 0.016, 70);
+      const call = getShortOwnerCall(gameState);
+      const promoLabel = nextCareer.level === 2 ? `报告${call}！转正${nextCareer.title}!` : `报告${call}！升职${nextCareer.title}!`;
+      props.spawnFxText(promoLabel, '#a3e635', new THREE.Vector3(0.2, 1.38, 0.5), 0.015, 70);
       if (bonus > 0) {
         props.spawnFxText(`+${bonus} 红包`, '#fde047', new THREE.Vector3(0.2, 1.12, 0.5), 0.017, 65);
       }
@@ -561,9 +562,11 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
       if (behavior.wandHits >= 5 || t >= behavior.duration) {
         if (behavior.wandHits >= 5) {
-          addStats({ coins: 20, mood: 35, affection: 20, energy: -8 });
+          const career = getCareerInfo(gameState.workXp || 0).current;
+          const reward = 40 + career.baseCoin * 6;
+          addStats({ coins: reward, mood: 35, affection: 20, energy: -8, workXp: 15 });
           if (window.catSound.playCoin) window.catSound.playCoin();
-          props.spawnFxText('+20 💰', '#fde047', new THREE.Vector3(0.2, 1.15, 0.5), 0.022, 42);
+          props.spawnFxText(`+${reward} 💰`, '#fde047', new THREE.Vector3(0.2, 1.15, 0.5), 0.020, 42);
         } else {
           addStats({ mood: 15, affection: 8 });
         }
@@ -799,9 +802,11 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
             props.bugGroup.visible = false;
             if (window.catSound.playSwat) window.catSound.playSwat(true);
             if (window.catSound.playCoin) window.catSound.playCoin();
-            addStats({ coins: 20, mood: 25, affection: 12, energy: -5, workXp: 15, statsDelta: { bugsCaught: 1 } });
+            const career = getCareerInfo(gameState.workXp || 0).current;
+            const reward = 60 + career.baseCoin * 15;
+            addStats({ coins: reward, mood: 25, affection: 12, energy: -5, workXp: 15, statsDelta: { bugsCaught: 1 } });
             onPersistGame(gameState);
-            props.spawnFxText('+20 🦋', '#fde047', new THREE.Vector3(0.25, 0.95, 0.6), 0.022, 46);
+            props.spawnFxText(`+${reward} 🦋`, '#fde047', new THREE.Vector3(0.25, 0.95, 0.6), 0.020, 46);
             behavior.duration = t + 45;
           }
         }

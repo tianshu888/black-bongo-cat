@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>喵星短视频电商有限公司 · 新员工入职申请表</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #13141a;
+      color: #f1f5f9;
+      font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      border: 1px solid rgba(255,255,255,0.1);
+      overflow: hidden;
+    }
+    .titlebar {
+      -webkit-app-region: drag;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: rgba(255,255,255,0.04);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .titlebar h1 { font-size: 13.5px; font-weight: 700; color: #f8fafc; display: flex; align-items: center; gap: 7px; }
+    .sub-pill {
+      font-size: 10.5px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      background: rgba(163, 230, 53, 0.16);
+      color: #a3e635;
+      font-weight: 600;
+    }
+    .close-btn {
+      -webkit-app-region: no-drag;
+      background: rgba(255,255,255,0.08);
+      color: #cbd5e1;
+      border: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .close-btn:hover { background: #ef4444; color: #fff; }
+
+    .main-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1.24fr 1fr;
+      gap: 14px;
+      padding: 12px 16px;
+    }
+    .left-col {
+      overflow-y: auto;
+      padding-right: 4px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .left-col::-webkit-scrollbar { width: 5px; }
+    .left-col::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.16); border-radius: 99px; }
+
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .hint { font-size: 10.5px; color: #94a3b8; font-weight: 400; }
+
+    .field-row { display: flex; align-items: center; gap: 7px; }
+    .field-label { font-size: 11px; color: #94a3b8; width: 64px; flex-shrink: 0; }
+    input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 11.5px;
+      color: #f8fafc;
+      outline: none;
+      user-select: text;
+    }
+    input[type="text"]:focus { border-color: #a3e635; background: rgba(255,255,255,0.09); }
+
+    .pill-wrap { display: flex; flex-wrap: wrap; gap: 5px; }
+    .pill {
+      padding: 4px 8px;
+      border-radius: 99px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: #cbd5e1;
+      font-size: 10.5px;
+      cursor: pointer;
+      transition: all 0.14s;
+    }
+    .pill:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .pill.active {
+      background: rgba(163, 230, 53, 0.22);
+      border-color: #a3e635;
+      color: #ecfccb;
+      font-weight: 600;
+    }
+
+    .dot-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .swatch {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 8px; border-radius: 7px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      color: #e2e8f0; font-size: 11px; cursor: pointer;
+    }
+    .swatch.active { border-color: #a3e635; background: rgba(163, 230, 53, 0.16); font-weight: 600; }
+    .dot { width: 11px; height: 11px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4); }
+
+    .btn-mini {
+      padding: 4px 8px; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.08);
+      color: #e2e8f0; font-size: 11px; cursor: pointer; flex-shrink: 0;
+    }
+    .btn-mini:hover { background: rgba(255,255,255,0.15); }
+
+    /* Live Employee Badge Preview */
+    .badge-stage {
+      position: relative;
+      border-radius: 13px;
+      padding: 13px;
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      background: linear-gradient(140deg, rgba(15,23,42,0.96), rgba(30,58,138,0.48));
+      box-shadow: 0 10px 26px rgba(0,0,0,0.42);
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      overflow: hidden;
+    }
+    .badge-stage.theme-pink {
+      border-color: rgba(244, 114, 182, 0.5);
+      background: linear-gradient(140deg, rgba(45,16,38,0.95), rgba(157,23,77,0.42));
+    }
+    .badge-stage.theme-gold {
+      border-color: rgba(251, 191, 36, 0.55);
+      background: linear-gradient(140deg, rgba(24,24,27,0.98), rgba(120,53,15,0.45));
+    }
+    .badge-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: #cbd5e1;
+      border-bottom: 1px dashed rgba(255,255,255,0.16);
+      padding-bottom: 6px;
+    }
+    .tier-chip {
+      padding: 1px 7px;
+      border-radius: 99px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid currentColor;
+    }
+    .badge-body {
+      display: flex;
+      gap: 11px;
+      align-items: center;
+    }
+    .photo-box {
+      width: 82px;
+      height: 82px;
+      border-radius: 10px;
+      border: 2px solid rgba(255,255,255,0.28);
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .photo-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .badge-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .badge-name { font-size: 15px; font-weight: 800; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .badge-dept { font-size: 11px; color: #93c5fd; font-weight: 600; }
+    .badge-line { font-size: 10.5px; color: #cbd5e1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .badge-tags { display: flex; flex-direction: column; gap: 4px; font-size: 10.5px; color: #e2e8f0; padding-top: 4px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .tag-row { display: flex; align-items: baseline; gap: 5px; }
+    .tag-k { color: #94a3b8; flex-shrink: 0; font-size: 10px; }
+    .tag-v { color: #f8fafc; line-height: 1.35; word-break: break-all; }
+
+    .badge-foot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10.5px;
+      color: #fde047;
+      background: rgba(0,0,0,0.22);
+      padding: 5px 8px;
+      border-radius: 7px;
+    }
+
+    .paw-stamp {
+      position: absolute;
+      right: 14px;
+      bottom: 34px;
+      padding: 5px 10px;
+      border: 2.5px solid #fb7185;
+      color: #fb7185;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      background: rgba(24,24,27,0.75);
+      transform: rotate(-14deg) scale(2.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    .paw-stamp.stamped { opacity: 1; transform: rotate(-14deg) scale(1); }
+
+    .photo-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+    .btn-photo {
+      padding: 6px 8px; border-radius: 7px;
+      border: 1px solid rgba(56,189,248,0.45);
+      background: rgba(56,189,248,0.16);
+      color: #e0f2fe; font-size: 11px; font-weight: 600; cursor: pointer;
+    }
+    .btn-photo:hover { background: rgba(56,189,248,0.28); }
+    .btn-upload {
+      padding: 6px 8px; border-radius: 7px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      color: #e2e8f0; font-size: 11px; cursor: pointer;
+    }
+    .btn-upload:hover { background: rgba(255,255,255,0.15); }
+
+    .footer {
+      padding: 10px 16px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.025);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .gift-note { font-size: 11px; color: #fde047; }
+    .foot-btns { display: flex; gap: 8px; }
+    .btn-skip {
+      padding: 7px 12px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.06);
+      color: #cbd5e1; font-size: 11.5px; cursor: pointer;
+    }
+    .btn-skip:hover { background: rgba(255,255,255,0.12); color: #fff; }
+    .btn-submit {
+      padding: 7px 16px; border-radius: 8px;
+      border: none;
+      background: #84cc16;
+      color: #0f172a; font-size: 12px; font-weight: 700; cursor: pointer;
+    }
+    .btn-submit:hover { background: #a3e635; }
+  </style>
+</head>
+<body>
+  <div class="titlebar">
+    <h1>📋 喵星短视频电商有限公司 · 新员工入职申请表 <span class="sub-pill" id="mode-pill">入职登记</span></h1>
+    <button class="close-btn" id="btn-close">✕</button>
+  </div>
+
+  <div class="main-grid">
+    <!-- LEFT: APPLICATION FORM -->
+    <div class="left-col">
+      <div class="card">
+        <div class="card-title"><span>👤 主人与猫咪档案</span><span class="hint">工牌与称呼展示</span></div>
+        <div class="field-row">
+          <span class="field-label">主人大名</span>
+          <input type="text" id="owner-name" maxlength="10" placeholder="比如：阿明 / 小林（可不填）" />
+        </div>
+        <div class="field-row">
+          <span class="field-label">怎么叫你</span>
+          <input type="text" id="owner-call" maxlength="10" placeholder="默认：铲屎官（可随便改）" />
+        </div>
+        <div class="pill-wrap" id="call-presets"></div>
+        <div class="field-row" style="margin-top:2px;">
+          <span class="field-label">猫咪花名</span>
+          <input type="text" id="cat-name" maxlength="10" placeholder="打工喵" />
+          <button class="btn-mini" id="btn-rand-name">🎲 随机</button>
+        </div>
+        <div class="field-row">
+          <span class="field-label">入职部门</span>
+          <div class="pill-wrap" id="dept-pills" style="flex:1;"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🐱 挑选小猫外观</span><span class="hint">桌面小猫实时同步换装</span></div>
+        <div class="dot-row" id="coat-swatches">
+          <button class="swatch" data-val="black"><span class="dot" style="background:#111116"></span>黑猫</button>
+          <button class="swatch" data-val="blue"><span class="dot" style="background:#4b5563"></span>蓝猫</button>
+          <button class="swatch" data-val="cream"><span class="dot" style="background:#f1f5f9"></span>白猫</button>
+          <button class="swatch" data-val="orange"><span class="dot" style="background:#ea580c"></span>橘猫</button>
+        </div>
+        <div class="dot-row" id="eye-swatches">
+          <button class="swatch" data-val="lime"><span class="dot" style="background:#a3e635"></span>绿眸</button>
+          <button class="swatch" data-val="amber"><span class="dot" style="background:#fbbf24"></span>琥珀</button>
+          <button class="swatch" data-val="sky"><span class="dot" style="background:#38bdf8"></span>蓝眸</button>
+          <button class="swatch" data-val="pink"><span class="dot" style="background:#f472b6"></span>粉眸</button>
+          <button class="swatch" data-val="violet"><span class="dot" style="background:#a78bfa"></span>紫眸</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🐾 猫咪看家技能</span><span class="hint">纯趣味随便填，不绑数值</span></div>
+        <div class="pill-wrap" id="skill-presets"></div>
+        <div class="field-row">
+          <input type="text" id="custom-skill" maxlength="14" placeholder="随便加：比如 会开冰箱门 / 半夜踩脸..." />
+          <button class="btn-mini" id="btn-add-skill">+ 添加</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🎀 猫猫爱好兴趣</span><span class="hint">选几项写进工牌简历</span></div>
+        <div class="pill-wrap" id="hobby-presets"></div>
+        <div class="field-row">
+          <input type="text" id="custom-hobby" maxlength="14" placeholder="随便加：比如 偷喝酸奶盖 / 守门..." />
+          <button class="btn-mini" id="btn-add-hobby">+ 添加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: LIVE BADGE STUDIO & PHOTO BOOTH -->
+    <div class="right-col">
+      <div class="badge-stage" id="badge-card">
+        <div class="badge-top">
+          <span>🐾 喵星短视频电商有限公司</span>
+          <span class="tier-chip" id="badge-tier">INTERN · 试用期</span>
+        </div>
+        <div class="badge-body">
+          <div class="photo-box" id="photo-box">
+            <svg viewBox="0 0 80 80" width="76" height="76">
+              <circle cx="40" cy="44" r="24" fill="#18181b"/>
+              <polygon points="18,30 22,12 34,24" fill="#18181b"/>
+              <polygon points="62,30 58,12 46,24" fill="#18181b"/>
+              <ellipse cx="32" cy="44" rx="5.5" ry="6.5" fill="#a3e635"/>
+              <ellipse cx="48" cy="44" rx="5.5" ry="6.5" fill="#a3e635"/>
+              <ellipse cx="32" cy="44" rx="2" ry="4.5" fill="#09090b"/>
+              <ellipse cx="48" cy="44" rx="2" ry="4.5" fill="#09090b"/>
+            </svg>
+          </div>
+          <div class="badge-meta">
+            <div class="badge-name" id="preview-name">打工喵</div>
+            <div class="badge-dept" id="preview-dept">千川剪辑部 · MC-0001</div>
+            <div class="badge-line" id="preview-rank">Lv.1 实习打杂喵 (底薪 1 币/次)</div>
+            <div class="badge-line" id="preview-date" style="color:#94a3b8;">入职：2026-11-21</div>
+          </div>
+        </div>
+        <div class="badge-tags">
+          <div class="tag-row"><span class="tag-k">看家本领：</span><span class="tag-v" id="preview-skills">会翻跟斗 · 会抓虫子</span></div>
+          <div class="tag-row"><span class="tag-k">猫猫爱好：</span><span class="tag-v" id="preview-hobbies">钻快递纸箱 · 趴热键盘睡觉</span></div>
+        </div>
+        <div class="badge-foot">
+          <span id="preview-owner">专属铲屎官</span>
+          <span style="color:#cbd5e1;font-size:10px;">右键桌面小猫可看状态</span>
+        </div>
+        <div class="paw-stamp" id="paw-stamp">🐾 准予入职</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>📸 拍工牌证件照</span><span class="hint">可桌面直拍或传真猫照</span></div>
+        <div class="pill-wrap" id="pose-pills">
+          <button class="pill active" data-pose="normal">👀 正经看镜头</button>
+          <button class="pill" data-pose="happy">😸 开心眯眼笑</button>
+          <button class="pill" data-pose="silly">😛 吐舌头卖萌</button>
+        </div>
+        <div class="photo-actions">
+          <button class="btn-photo" id="btn-capture-3d">📸 桌面3D猫现拍</button>
+          <button class="btn-upload" id="btn-pick-local">🖼 上传本地照片</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title"><span>🎨 工牌背景配色</span></div>
+        <div class="dot-row" id="theme-swatches">
+          <button class="swatch active" data-val="blue"><span class="dot" style="background:#38bdf8"></span>大厂科技蓝</button>
+          <button class="swatch" data-val="pink"><span class="dot" style="background:#f472b6"></span>甜粉樱花</button>
+          <button class="swatch" data-val="gold"><span class="dot" style="background:#fbbf24"></span>黑金质感</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="gift-note" id="gift-note">🎁 正式入职即领：120 猫币 + 脆脆猫粮×2 + 鲜香猫条×1</div>
+    <div class="foot-btns">
+      <button class="btn-skip" id="btn-skip">先跳过直接上班</button>
+      <button class="btn-submit" id="btn-submit">🐾 按爪印正式入职</button>
+    </div>
+  </div>
+
+  <script type="module" src="./onboarding.js"></script>
+</body>
+</html>

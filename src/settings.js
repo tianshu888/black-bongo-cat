@@ -1,41 +1,42 @@
-import { getCareerInfo } from './careers.js';
+import {
+  SHOP_ITEMS,
+  ACCESSORIES,
+  getCareerInfo,
+  getBadgeTier,
+  formatOwnerCall
+} from './careers.js';
 
 const scaleSlider = document.getElementById('scale-slider');
 const scaleLabel = document.getElementById('scale-label');
 const toastEl = document.getElementById('toast');
 const catNameInput = document.getElementById('cat-name-input');
 const titleCatName = document.getElementById('title-cat-name');
+const miniBadge = document.getElementById('mini-badge');
+const miniBadgePhoto = document.getElementById('mini-badge-photo');
 
 let localCfg = {};
+let badgePhotoUrl = '';
 let localGame = {
+  onboarded: false,
+  employeeId: 'MC-0001',
   catName: '打工喵',
-  coins: 80,
+  department: '千川剪辑部',
+  ownerName: '',
+  ownerCall: '铲屎官',
+  skills: ['会翻跟斗', '会抓虫子'],
+  hobbies: ['钻快递纸箱', '趴热键盘睡觉'],
+  badgeTheme: 'blue',
+  coins: 120,
   hunger: 84,
   mood: 86,
   energy: 92,
   affection: 0,
   workXp: 0,
   isExhausted: false,
-  inventory: { kibble: 1, churu: 1, can: 0, yarn: 0, wand: 0 },
+  inventory: { kibble: 2, churu: 1, can: 0, yarn: 0, wand: 0 },
   unlockedAccessories: ['none'],
   stats: { totalKeys: 0, totalClicks: 0, totalPets: 0, bugsCaught: 0, feedCount: 0 }
 };
-
-const SHOP_ITEMS = [
-  { id: 'kibble', action: 'feedKibble', name: '🥛 脆脆猫粮', price: 20, desc: '饱食 +35 体力 +35 心情 +6 · 快速填肚回体' },
-  { id: 'churu',  action: 'feedChuru',  name: '🥢 鲜香猫条', price: 50, desc: '饱食 +25 体力 +45 心情 +28 亲密 +18 · 舔食快速醒神' },
-  { id: 'can',    action: 'feedCan',    name: '🥫 豪华罐头', price: 120, desc: '饱食 +75 体力 +100 心情 +45 亲密 +30 · 满血秒回元气' },
-  { id: 'yarn',   action: 'playYarn',   name: '🧶 毛线球',   price: 40, desc: '心情 +25 亲密 +10 体力 -6 · 滚球互动玩耍' },
-  { id: 'wand',   action: 'playWand',   name: '🎋 羽毛逗猫棒', price: 60, desc: '心情 +35 亲密 +20 体力 -8 · 挥舞逗猫赢 +20 币' }
-];
-
-const ACCESSORIES = [
-  { id: 'none',       label: '无饰品',       levelReq: 1, price: 0 },
-  { id: 'bell',       label: '🔔 金铃铛',   levelReq: 2, price: 80 },
-  { id: 'bowtie',     label: '🎀 蝴蝶结',   levelReq: 3, price: 100 },
-  { id: 'headphones', label: '🎧 小耳机',   levelReq: 4, price: 150 },
-  { id: 'beret',      label: '🎨 贝雷帽',   levelReq: 5, price: 180 }
-];
 
 let toastTimer = null;
 function showToast(msg, ok = true) {
@@ -53,6 +54,27 @@ function getBondLevel(affection) {
 function getBondTitle(lv) {
   const titles = ['初识萌猫', '好奇搭档', '贴心小跟班', '粘人黑团子', '桌宠好伙伴', '猫猫知己', '呼噜大师', '灵魂猫伴', '摸鱼CEO', '殿堂级招财猫'];
   return titles[Math.min(titles.length - 1, lv - 1)];
+}
+
+function renderMiniBadgePhoto() {
+  if (badgePhotoUrl) {
+    miniBadgePhoto.innerHTML = `<img src="${badgePhotoUrl}" alt="工牌照" />`;
+    return;
+  }
+  const coatMap = { black: '#18181b', blue: '#475569', cream: '#f1f5f9', orange: '#ea580c' };
+  const eyeMap = { lime: '#a3e635', amber: '#fbbf24', sky: '#38bdf8', pink: '#f472b6', violet: '#a78bfa' };
+  const fur = coatMap[localCfg.catCoat] || '#18181b';
+  const iris = eyeMap[localCfg.eyeColor] || '#a3e635';
+  miniBadgePhoto.innerHTML = `
+    <svg viewBox="0 0 80 80" width="46" height="46">
+      <circle cx="40" cy="44" r="24" fill="${fur}"/>
+      <polygon points="18,30 22,12 34,24" fill="${fur}"/>
+      <polygon points="62,30 58,12 46,24" fill="${fur}"/>
+      <ellipse cx="32" cy="44" rx="5.5" ry="6.5" fill="${iris}"/>
+      <ellipse cx="48" cy="44" rx="5.5" ry="6.5" fill="${iris}"/>
+      <ellipse cx="32" cy="44" rx="2" ry="4.5" fill="#09090b"/>
+      <ellipse cx="48" cy="44" rx="2" ry="4.5" fill="#09090b"/>
+    </svg>`;
 }
 
 function switchTab(tabName) {
@@ -78,6 +100,19 @@ function renderGameUI(gs) {
 
   const xp = Math.floor(gs.workXp || 0);
   const { current: career, next: nextCareer, progress } = getCareerInfo(xp);
+  const tier = getBadgeTier(career.level);
+
+  miniBadge.style.borderColor = tier.border;
+  miniBadge.style.background = tier.bg;
+  const tierChip = document.getElementById('badge-tier-chip');
+  tierChip.textContent = tier.label;
+  tierChip.style.color = tier.badgeColor;
+  document.getElementById('badge-dept-id').textContent = gs.department || '千川剪辑部';
+  document.getElementById('badge-owner-line').textContent = `${gs.employeeId || 'MC-0001'} · 专属${formatOwnerCall(gs)}`;
+  const traitText = [...(gs.skills || []), ...(gs.hobbies || [])].slice(0, 4).join(' · ') || '点击右侧录入技能与爱好';
+  document.getElementById('badge-traits-line').textContent = traitText;
+  renderMiniBadgePhoto();
+
   document.getElementById('career-title').textContent = `💼 Lv.${career.level} · ${career.title}`;
   document.getElementById('career-xp').textContent = nextCareer
     ? `${xp} / ${nextCareer.minXp} XP`
@@ -138,7 +173,7 @@ function renderGameUI(gs) {
       const isFood = item.id === 'kibble' || item.id === 'churu' || item.id === 'can';
       pushGameUpdate(isFood ? { inventory: nextInv, isExhausted: false } : { inventory: nextInv });
       if (window.bongoAPI) window.bongoAPI.triggerPlayAction({ type: item.action });
-      showToast(`已递出 ${item.name}，快看${localGame.catName || '打工喵'}！`);
+      showToast(`已递出 ${item.name}，${formatOwnerCall(localGame)}真好~`);
     });
     shopList.appendChild(row);
   });
@@ -147,7 +182,7 @@ function renderGameUI(gs) {
   accGrid.innerHTML = '';
   const unlocked = new Set(gs.unlockedAccessories || ['none']);
   ACCESSORIES.forEach((acc) => {
-    const isUnlocked = unlocked.has(acc.id) || lv >= acc.levelReq;
+    const isUnlocked = unlocked.has(acc.id) || Math.max(lv, career.level) >= acc.levelReq;
     const isEquipped = (localCfg.equippedAccessory || 'none') === acc.id;
     const btn = document.createElement('button');
     btn.className = `pill-btn ${isEquipped ? 'active' : ''}`;
@@ -161,7 +196,7 @@ function renderGameUI(gs) {
       btn.textContent = `${acc.label} (Lv.${acc.levelReq}或${acc.price}币)`;
       btn.addEventListener('click', () => {
         if ((localGame.coins || 0) < acc.price) {
-          return showToast(`需亲密 Lv.${acc.levelReq} 或 ${acc.price} 猫币解锁~`, false);
+          return showToast(`需职级/亲密 Lv.${acc.levelReq} 或 ${acc.price} 猫币解锁~`, false);
         }
         const nextSet = Array.from(new Set([...unlocked, acc.id]));
         pushGameUpdate({ coins: localGame.coins - acc.price, unlockedAccessories: nextSet });
@@ -256,6 +291,10 @@ catNameInput.addEventListener('keydown', (e) => {
   }
 });
 
+document.getElementById('btn-open-onboarding').addEventListener('click', () => {
+  if (window.bongoAPI && window.bongoAPI.openOnboarding) window.bongoAPI.openOnboarding();
+});
+
 document.getElementById('btn-reset-pos').addEventListener('click', () => {
   if (window.bongoAPI) window.bongoAPI.resetPosition();
 });
@@ -272,6 +311,20 @@ renderGameUI(localGame);
 if (window.bongoAPI) {
   window.bongoAPI.getSettings().then(renderSettingsUI);
   window.bongoAPI.getGameState().then(renderGameUI);
+  if (window.bongoAPI.getBadgePhoto) {
+    window.bongoAPI.getBadgePhoto().then((url) => {
+      if (url) {
+        badgePhotoUrl = url;
+        renderMiniBadgePhoto();
+      }
+    });
+  }
+  if (window.bongoAPI.onBadgePhotoChanged) {
+    window.bongoAPI.onBadgePhotoChanged((url) => {
+      badgePhotoUrl = url || '';
+      renderMiniBadgePhoto();
+    });
+  }
   window.bongoAPI.onSettingsChanged(renderSettingsUI);
   window.bongoAPI.onGameStateChanged(renderGameUI);
   window.bongoAPI.onSwitchTab((tab) => switchTab(tab));

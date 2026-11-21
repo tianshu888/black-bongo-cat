@@ -294,6 +294,10 @@ window.addEventListener('contextmenu', (e) => {
   if (behaviors.behavior.mode === 'feedChuru' || behaviors.behavior.mode === 'playWand') {
     behaviors.exitToWork();
     updateClickThrough(state.winX, state.winY);
+    return;
+  }
+  if (state.isOverCat && window.bongoAPI) {
+    window.bongoAPI.openSettings('shop');
   }
 });
 
@@ -508,6 +512,12 @@ if (window.bongoAPI) {
   if (window.bongoAPI.onGameStateChanged) window.bongoAPI.onGameStateChanged(applyGameState);
   if (window.bongoAPI.onPlayAction) window.bongoAPI.onPlayAction((action) => behaviors.handleAction(action));
   if (window.bongoAPI.onTriggerDemo) window.bongoAPI.onTriggerDemo(playDemoTyping);
+  if (window.bongoAPI.onTakeCatPhoto) {
+    window.bongoAPI.onTakeCatPhoto(({ reqId, pose, theme }) => {
+      const dataUrl = captureStudioCatPhoto(pose, theme);
+      window.bongoAPI.sendCatPhotoResult(reqId, dataUrl);
+    });
+  }
   if (window.bongoAPI.onWindowResized) {
     window.bongoAPI.onWindowResized(({ width, height }) => {
       if (!width || !height) return;
@@ -780,6 +790,135 @@ function update3DScene() {
     rig.tailBasePts[3].y + wag * 0.55 + tailHigh * 0.7,
     rig.tailBasePts[3].z
   );
+}
+
+function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
+  const hiddenProps = [
+    props.keyboardGroup, props.mouseGroup, props.foodBowlGroup, props.tunaCanGroup,
+    props.churuGroup, props.wandGroup, props.yarnGroup, props.bugGroup, props.boxGroup
+  ];
+  const prevVis = hiddenProps.map((g) => g.visible);
+  hiddenProps.forEach((g) => { g.visible = false; });
+
+  const prevCatPos = rig.catRoot.position.clone();
+  const prevCatRot = rig.catRoot.rotation.clone();
+  const prevHeadRot = rig.headPivot.rotation.clone();
+  const prevUpL = rig.leftEye3D.upperLidPivot.rotation.x;
+  const prevLoL = rig.leftEye3D.lowerLidPivot.rotation.x;
+  const prevUpR = rig.rightEye3D.upperLidPivot.rotation.x;
+  const prevLoR = rig.rightEye3D.lowerLidPivot.rotation.x;
+  const prevSockL = rig.leftEye3D.eyeSocket.rotation.z;
+  const prevSockR = rig.rightEye3D.eyeSocket.rotation.z;
+  const prevPupilRotL = rig.leftEye3D.pupilPivot.rotation.clone();
+  const prevPupilRotR = rig.rightEye3D.pupilPivot.rotation.clone();
+  const prevPupilScale = rig.leftEye3D.pupil.scale.clone();
+  const prevBlush = rig.blushMat.opacity;
+  const prevTongue = rig.tonguePivot.visible;
+  const prevTongueScale = rig.tonguePivot.scale.clone();
+  const prevCamPos = camera.position.clone();
+  const prevCamQuat = camera.quaternion.clone();
+  const prevFov = camera.fov;
+
+  try {
+    rig.catRoot.position.set(0, 0, 0);
+    rig.catRoot.rotation.set(0, 0, 0);
+    rig.leftEye3D.pupilPivot.rotation.set(0, 0, 0);
+    rig.rightEye3D.pupilPivot.rotation.set(0, 0, 0);
+
+    if (pose === 'happy') {
+      rig.headPivot.rotation.set(-0.04, 0.06, 0.12);
+      rig.leftEye3D.upperLidPivot.rotation.x = -0.24;
+      rig.rightEye3D.upperLidPivot.rotation.x = -0.24;
+      rig.leftEye3D.lowerLidPivot.rotation.x = 0.24;
+      rig.rightEye3D.lowerLidPivot.rotation.x = 0.24;
+      rig.leftEye3D.eyeSocket.rotation.z = -0.05;
+      rig.rightEye3D.eyeSocket.rotation.z = 0.05;
+      rig.blushMat.opacity = 0.50;
+      rig.tonguePivot.visible = false;
+      rig.leftEye3D.pupil.scale.set(1.15, 1.10, 1);
+      rig.rightEye3D.pupil.scale.set(1.15, 1.10, 1);
+    } else if (pose === 'silly') {
+      rig.headPivot.rotation.set(-0.08, -0.06, -0.14);
+      rig.leftEye3D.upperLidPivot.rotation.x = -1.52;
+      rig.rightEye3D.upperLidPivot.rotation.x = -1.52;
+      rig.leftEye3D.lowerLidPivot.rotation.x = 1.52;
+      rig.rightEye3D.lowerLidPivot.rotation.x = 1.52;
+      rig.leftEye3D.eyeSocket.rotation.z = 0.04;
+      rig.rightEye3D.eyeSocket.rotation.z = -0.04;
+      rig.blushMat.opacity = 0.45;
+      rig.tonguePivot.visible = true;
+      rig.tonguePivot.scale.set(1.25, 1.25, 1.35);
+      rig.leftEye3D.pupil.scale.set(1.42, 1.36, 1);
+      rig.rightEye3D.pupil.scale.set(1.42, 1.36, 1);
+    } else {
+      rig.headPivot.rotation.set(-0.02, 0, 0);
+      rig.leftEye3D.upperLidPivot.rotation.x = -1.52;
+      rig.rightEye3D.upperLidPivot.rotation.x = -1.52;
+      rig.leftEye3D.lowerLidPivot.rotation.x = 1.52;
+      rig.rightEye3D.lowerLidPivot.rotation.x = 1.52;
+      rig.leftEye3D.eyeSocket.rotation.z = 0.04;
+      rig.rightEye3D.eyeSocket.rotation.z = -0.04;
+      rig.blushMat.opacity = 0.16;
+      rig.tonguePivot.visible = false;
+      rig.leftEye3D.pupil.scale.set(1.12, 1.08, 1);
+      rig.rightEye3D.pupil.scale.set(1.12, 1.08, 1);
+    }
+
+    camera.fov = 23;
+    camera.updateProjectionMatrix();
+    camera.position.set(0, 0.96, 4.15);
+    camera.lookAt(0, 0.84, 0);
+    renderer.render(scene, camera);
+
+    const out = document.createElement('canvas');
+    out.width = 240;
+    out.height = 240;
+    const ctx = out.getContext('2d');
+    const grad = ctx.createLinearGradient(0, 0, 0, 240);
+    if (theme === 'pink') {
+      grad.addColorStop(0, '#fdf2f8');
+      grad.addColorStop(1, '#fbcfe8');
+    } else if (theme === 'gold') {
+      grad.addColorStop(0, '#3f3f46');
+      grad.addColorStop(1, '#92400e');
+    } else {
+      grad.addColorStop(0, '#e0f2fe');
+      grad.addColorStop(1, '#93c5fd');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 240, 240);
+
+    const srcSide = Math.min(canvas.width, canvas.height) * 0.90;
+    const sx = (canvas.width - srcSide) / 2;
+    const sy = (canvas.height - srcSide) / 2;
+    ctx.drawImage(canvas, sx, sy, srcSide, srcSide, 0, 0, 240, 240);
+
+    if (window.catSound && window.catSound.playBell) window.catSound.playBell();
+    return out.toDataURL('image/png');
+  } finally {
+    hiddenProps.forEach((g, idx) => { g.visible = prevVis[idx]; });
+    rig.catRoot.position.copy(prevCatPos);
+    rig.catRoot.rotation.copy(prevCatRot);
+    rig.headPivot.rotation.copy(prevHeadRot);
+    rig.leftEye3D.upperLidPivot.rotation.x = prevUpL;
+    rig.leftEye3D.lowerLidPivot.rotation.x = prevLoL;
+    rig.rightEye3D.upperLidPivot.rotation.x = prevUpR;
+    rig.rightEye3D.lowerLidPivot.rotation.x = prevLoR;
+    rig.leftEye3D.eyeSocket.rotation.z = prevSockL;
+    rig.rightEye3D.eyeSocket.rotation.z = prevSockR;
+    rig.leftEye3D.pupilPivot.rotation.copy(prevPupilRotL);
+    rig.rightEye3D.pupilPivot.rotation.copy(prevPupilRotR);
+    rig.leftEye3D.pupil.scale.copy(prevPupilScale);
+    rig.rightEye3D.pupil.scale.copy(prevPupilScale);
+    rig.blushMat.opacity = prevBlush;
+    rig.tonguePivot.visible = prevTongue;
+    rig.tonguePivot.scale.copy(prevTongueScale);
+    camera.fov = prevFov;
+    camera.updateProjectionMatrix();
+    camera.position.copy(prevCamPos);
+    camera.quaternion.copy(prevCamQuat);
+    renderer.render(scene, camera);
+  }
 }
 
 function animate() {

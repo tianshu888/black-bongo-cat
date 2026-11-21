@@ -1,9 +1,11 @@
-const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 
 // Always isolate pet userData so external ELECTRON_USER_DATA_DIR env vars never lock settings/GPU cache
-app.setPath('userData', path.join(app.getPath('appData'), 'BlackBongoCatPet'));
+if (!app.commandLine.hasSwitch('user-data-dir')) {
+  app.setPath('userData', path.join(app.getPath('appData'), 'BlackBongoCatPet'));
+}
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
@@ -38,8 +40,17 @@ const DEFAULT_SETTINGS = {
 };
 
 const DEFAULT_GAME_STATE = {
+  onboarded: false,
+  employeeId: 'MC-0001',
   catName: '打工喵',
-  coins: 80,
+  department: '千川剪辑部',
+  ownerName: '',
+  ownerCall: '铲屎官',
+  skills: ['会翻跟斗', '会抓虫子'],
+  hobbies: ['钻快递纸箱', '趴热键盘睡觉'],
+  badgeTheme: 'blue',
+  hiredAt: '',
+  coins: 120,
   hunger: 84,
   mood: 86,
   energy: 92,
@@ -47,7 +58,7 @@ const DEFAULT_GAME_STATE = {
   workXp: 0,
   isExhausted: false,
   inventory: {
-    kibble: 1,
+    kibble: 2,
     churu: 1,
     can: 0,
     yarn: 0,
@@ -65,10 +76,37 @@ const DEFAULT_GAME_STATE = {
 
 let mainWindow = null;
 let settingsWindow = null;
+let onboardingWindow = null;
 let tray = null;
 let uIOhook = null;
 let currentSettings = { ...DEFAULT_SETTINGS };
 let currentGameState = JSON.parse(JSON.stringify(DEFAULT_GAME_STATE));
+
+function getBadgePhotoPath() {
+  return path.join(app.getPath('userData'), 'badge-photo.png');
+}
+
+function readBadgePhotoDataUrl() {
+  try {
+    const p = getBadgePhotoPath();
+    if (fs.existsSync(p)) {
+      const b64 = fs.readFileSync(p).toString('base64');
+      return `data:image/png;base64,${b64}`;
+    }
+  } catch (_) {}
+  return '';
+}
+
+function writeBadgePhotoDataUrl(dataUrl) {
+  if (!dataUrl || typeof dataUrl !== 'string') return '';
+  const raw = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+  fs.mkdirSync(path.dirname(getBadgePhotoPath()), { recursive: true });
+  fs.writeFileSync(getBadgePhotoPath(), Buffer.from(raw, 'base64'));
+  const cleanUrl = readBadgePhotoDataUrl();
+  if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.webContents.send('badge-photo-changed', cleanUrl);
+  if (onboardingWindow && !onboardingWindow.isDestroyed()) onboardingWindow.webContents.send('badge-photo-changed', cleanUrl);
+  return cleanUrl;
+}
 
 function getSettingsPath() {
   return path.join(app.getPath('userData'), 'bongo-settings.json');
@@ -238,6 +276,7 @@ function createTray() {
     };
     const buildMenu = () => Menu.buildFromTemplate([
       { label: `🐾 ${currentGameState.catName || '打工喵'} · 档案与商店 (💰 ${Math.floor(currentGameState.coins)} 猫币)`, click: () => openSettingsWindow('shop') },
+      { label: '📋 员工工牌 / 入职申请表', click: () => openOnboardingWindow() },
       { label: '⚙ 外观与大小设置', click: () => openSettingsWindow('appearance') },
       {
         label: '🎭 互动与动作预览',
@@ -373,6 +412,51 @@ function openSettingsWindow(initialTab = 'shop') {
   settingsWindow.on('closed', () => { settingsWindow = null; });
 }
 
+function openOnboardingWindow() {
+  if (onboardingWindow && !onboardingWindow.isDestroyed()) {
+    onboardingWindow.show();
+    onboardingWindow.focus();
+    return;
+  }
+  const catBounds = mainWindow && !mainWindow.isDestroyed()
+    ? mainWindow.getBounds()
+    : { x: 1000, y: 500, width: BASE_W, height: BASE_H };
+  const area = (screen.getDisplayMatching(catBounds) || screen.getPrimaryDisplay()).workArea;
+  const ow = 768;
+  const oh = 598;
+  const ox = Math.round(area.x + (area.width - ow) / 2);
+  const oy = Math.round(area.y + (area.height - oh) / 2);
+
+  onboardingWindow = new BrowserWindow({
+    width: ow,
+    height: oh,
+    x: ox,
+    y: oy,
+    title: '新员工入职申请表 · 喵星短视频电商有限公司',
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    frame: false,
+    transparent: false,
+    backgroundColor: '#13141a',
+    alwaysOnTop: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+  onboardingWindow.setMenu(null);
+  onboardingWindow.loadFile(path.join(__dirname, '../src/onboarding.html'));
+  onboardingWindow.webContents.once('did-finish-load', () => {
+    onboardingWindow.webContents.send('settings-changed', currentSettings);
+    onboardingWindow.webContents.send('game-state-changed', currentGameState);
+    const photo = readBadgePhotoDataUrl();
+    if (photo) onboardingWindow.webContents.send('badge-photo-changed', photo);
+  });
+  onboardingWindow.on('closed', () => { onboardingWindow = null; });
+}
+
 function createWindow() {
   loadSettings();
   const winW = Math.round(BASE_W * currentSettings.scale);
@@ -457,7 +541,56 @@ ipcMain.handle('get-settings', () => currentSettings);
 ipcMain.handle('get-game-state', () => currentGameState);
 
 ipcMain.on('open-settings', (_, tab) => openSettingsWindow(tab || 'shop'));
+ipcMain.on('open-onboarding', () => openOnboardingWindow());
 ipcMain.on('reset-position', () => resetPetPosition());
+
+ipcMain.handle('get-badge-photo', () => readBadgePhotoDataUrl());
+ipcMain.handle('save-badge-photo', (_, dataUrl) => writeBadgePhotoDataUrl(dataUrl));
+
+let photoReqSeq = 0;
+ipcMain.handle('capture-cat-photo', (_, opts = {}) => new Promise((resolve) => {
+  if (!mainWindow || mainWindow.isDestroyed()) return resolve('');
+  const reqId = ++photoReqSeq;
+  const channel = `cat-photo-result-${reqId}`;
+  const timer = setTimeout(() => {
+    ipcMain.removeAllListeners(channel);
+    resolve('');
+  }, 4000);
+  ipcMain.once(channel, (_e, dataUrl) => {
+    clearTimeout(timer);
+    resolve(dataUrl ? writeBadgePhotoDataUrl(dataUrl) : '');
+  });
+  mainWindow.webContents.send('take-cat-photo', { reqId, pose: opts.pose || 'normal', theme: opts.theme || 'blue' });
+}));
+
+ipcMain.handle('pick-local-photo', async () => {
+  const parent = (onboardingWindow && !onboardingWindow.isDestroyed()) ? onboardingWindow : settingsWindow;
+  const res = await dialog.showOpenDialog(parent || undefined, {
+    title: '选择萌宠工牌照',
+    properties: ['openFile'],
+    filters: [{ name: '图片文件', extensions: ['png', 'jpg', 'jpeg', 'webp', 'bmp'] }]
+  });
+  if (res.canceled || !res.filePaths || !res.filePaths[0]) return '';
+  try {
+    let img = nativeImage.createFromPath(res.filePaths[0]);
+    if (img.isEmpty()) return '';
+    const { width, height } = img.getSize();
+    const side = Math.min(width, height);
+    if (side > 0 && width !== height) {
+      img = img.crop({
+        x: Math.floor((width - side) / 2),
+        y: Math.floor((height - side) / 2),
+        width: side,
+        height: side
+      });
+    }
+    const resized = img.resize({ width: 240, height: 240, quality: 'better' });
+    return writeBadgePhotoDataUrl(resized.toDataURL());
+  } catch (err) {
+    console.warn('[BongoCat] pick-local-photo failed:', err.message);
+    return '';
+  }
+});
 
 ipcMain.on('update-game-state', (event, partial) => {
   if (!partial) return;
@@ -473,6 +606,9 @@ ipcMain.on('update-game-state', (event, partial) => {
   }
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     settingsWindow.webContents.send('game-state-changed', currentGameState);
+  }
+  if (onboardingWindow && !onboardingWindow.isDestroyed()) {
+    onboardingWindow.webContents.send('game-state-changed', currentGameState);
   }
 });
 
@@ -511,6 +647,9 @@ ipcMain.on('update-settings', (event, partial) => {
   }
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     settingsWindow.webContents.send('settings-changed', currentSettings);
+  }
+  if (onboardingWindow && !onboardingWindow.isDestroyed()) {
+    onboardingWindow.webContents.send('settings-changed', currentSettings);
   }
 });
 
@@ -628,6 +767,9 @@ if (gotLock) {
     createWindow();
     createTray();
     setupGlobalHooks();
+    if (!currentGameState.onboarded) {
+      setTimeout(() => openOnboardingWindow(), 450);
+    }
   });
 }
 
