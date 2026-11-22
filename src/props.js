@@ -132,18 +132,22 @@ export function createProps(scene) {
   scrollWheel.position.set(0, 0.125, 0.065);
   mouseGroup.add(scrollWheel);
 
-  // 2. Compact 3D Mechanical Keyboard
+  // 2. Compact 3D Mechanical Keyboard (rotated 180° on desk plane so Spacebar faces the cat!)
   const keyboardGroup = new THREE.Group();
   keyboardGroup.position.set(0.24, -0.96, 0.82);
   keyboardGroup.rotation.set(0.30, 0.0, -0.045);
   deskGroup.add(keyboardGroup);
+
+  const kbKeysPivot = new THREE.Group();
+  kbKeysPivot.rotation.y = Math.PI;
+  keyboardGroup.add(kbKeysPivot);
 
   const kbW = 2.02;
   const kbD = 0.80;
   const kbChassisMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.65 });
   const kbChassis = new THREE.Mesh(new THREE.BoxGeometry(kbW, 0.12, kbD), kbChassisMat);
   kbChassis.position.y = -0.04;
-  keyboardGroup.add(kbChassis);
+  kbKeysPivot.add(kbChassis);
 
   const keyMap3D = new Map();
   const allKeys3D = [];
@@ -220,7 +224,7 @@ export function createProps(scene) {
         const activeMats = [activeKeyMat, activeKeyMat, topActive, activeKeyMat, activeKeyMat, activeKeyMat];
         const mesh = new THREE.Mesh(geo, baseMats);
         mesh.position.set(x, 0.036, z);
-        keyboardGroup.add(mesh);
+        kbKeysPivot.add(mesh);
 
         const entry = {
           ...k, wLen: w, dLen: d, isOrange, mesh, baseMats, activeMats,
@@ -278,7 +282,7 @@ export function createProps(scene) {
     ray2.rotation.y = -Math.PI / 4;
     grp.add(ray1, ray2);
 
-    keyboardGroup.add(grp);
+    kbKeysPivot.add(grp);
     keyImpacts.push({ grp, mats: [ringMat, rayMat], age: 0, maxAge: 13 });
   }
 
@@ -540,7 +544,7 @@ export function createProps(scene) {
       const alpha = Math.max(0, 1 - p);
       for (const m of imp.mats) m.opacity = alpha;
       if (imp.age >= imp.maxAge) {
-        keyboardGroup.remove(imp.grp);
+        kbKeysPivot.remove(imp.grp);
         keyImpacts.splice(i, 1);
       }
     }
@@ -587,6 +591,7 @@ export function createProps(scene) {
     mouseLeftHighlight,
     mouseRightHighlight,
     keyboardGroup,
+    kbKeysPivot,
     keyMap3D,
     allKeys3D,
     applyKeyboardTheme,

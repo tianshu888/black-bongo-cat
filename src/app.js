@@ -163,7 +163,7 @@ function triggerKeyPress(data) {
 
   props.keyboardGroup.updateMatrixWorld(true);
   rig.catRoot.updateMatrixWorld(true);
-  tempKeyPosWorld.copy(k.localPos).applyMatrix4(props.keyboardGroup.matrixWorld);
+  tempKeyPosWorld.copy(k.localPos).applyMatrix4(props.kbKeysPivot.matrixWorld);
 
   if (!behaviors.canWork()) {
     if (!data.isRepeat) {
@@ -196,10 +196,10 @@ function triggerKeyPress(data) {
   tempWorldVec.y += 0.08;
   tempWorldVec.z += 0.04;
 
-  let useRightHand = k.hand === 'left';
+  let useRightHand = k.hand === 'right';
   if (k.id === 'Space') {
     state.lastSpaceHand = state.lastSpaceHand === 'left' ? 'right' : 'left';
-    useRightHand = state.lastSpaceHand === 'left';
+    useRightHand = state.lastSpaceHand === 'right';
   }
   const holdingMouseBtn = state.mouseLeftDown || state.mouseRightDown;
   if (useRightHand && !holdingMouseBtn) state.mouseActiveTimer = 0;
@@ -220,7 +220,7 @@ function triggerKeyPress(data) {
     state.leftPaw.hitPop = 1;
   }
 
-  const keyRelX = Math.max(-1.0, Math.min(1.0, k.localPos.x / 0.92));
+  const keyRelX = Math.max(-1.0, Math.min(1.0, -k.localPos.x / 0.92));
   state.typingFocusX = keyRelX * 0.96;
   state.typingFocusY = -0.78 - (k.row / 5) * 0.22;
   state.typingLookTimer = 26;
