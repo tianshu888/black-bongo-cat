@@ -1,7 +1,10 @@
 const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog } = require('electron');
-const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const { installFramelessWin32Hook, reapplyFramelessWin32 } = require('./win32Frameless');
+
+app.commandLine.appendSwitch('disable-gpu-sandbox');
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');
 
 // Always isolate pet userData so external ELECTRON_USER_DATA_DIR env vars never lock settings/GPU cache
 if (!app.commandLine.hasSwitch('user-data-dir')) {
@@ -388,6 +391,7 @@ function openSettingsWindow(initialTab = 'shop') {
     height: sh,
     x: sx,
     y: sy,
+    show: false,
     title: '小黑猫桌宠 · 档案商店与设置',
     resizable: false,
     minimizable: false,
@@ -395,14 +399,24 @@ function openSettingsWindow(initialTab = 'shop') {
     frame: false,
     transparent: false,
     backgroundColor: '#13141a',
+    backgroundMaterial: 'none',
     alwaysOnTop: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: false
     }
   });
   settingsWindow.setMenu(null);
+  settingsWindow.once('ready-to-show', () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) settingsWindow.show();
+  });
+  settingsWindow.webContents.on('render-process-gone', () => {
+    if (settingsWindow && !settingsWindow.isDestroyed()) {
+      settingsWindow.loadFile(path.join(__dirname, '../src/settings.html'));
+    }
+  });
   settingsWindow.loadFile(path.join(__dirname, '../src/settings.html'));
   settingsWindow.webContents.once('did-finish-load', () => {
     settingsWindow.webContents.send('switch-tab', initialTab);
@@ -432,6 +446,7 @@ function openOnboardingWindow() {
     height: oh,
     x: ox,
     y: oy,
+    show: false,
     title: '打工喵 · 趣味入职卡',
     resizable: false,
     minimizable: false,
@@ -439,14 +454,24 @@ function openOnboardingWindow() {
     frame: false,
     transparent: false,
     backgroundColor: '#13141a',
+    backgroundMaterial: 'none',
     alwaysOnTop: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      sandbox: false
     }
   });
   onboardingWindow.setMenu(null);
+  onboardingWindow.once('ready-to-show', () => {
+    if (onboardingWindow && !onboardingWindow.isDestroyed()) onboardingWindow.show();
+  });
+  onboardingWindow.webContents.on('render-process-gone', () => {
+    if (onboardingWindow && !onboardingWindow.isDestroyed()) {
+      onboardingWindow.loadFile(path.join(__dirname, '../src/onboarding.html'));
+    }
+  });
   onboardingWindow.loadFile(path.join(__dirname, '../src/onboarding.html'));
   onboardingWindow.webContents.once('did-finish-load', () => {
     onboardingWindow.webContents.send('settings-changed', currentSettings);
@@ -457,47 +482,8 @@ function openOnboardingWindow() {
   onboardingWindow.on('closed', () => { onboardingWindow = null; });
 }
 
-let ncFixTimer = null;
-let ncFixRunning = false;
 function suppressNonClientFrame(win) {
-  if (process.platform !== 'win32' || !win || win.isDestroyed()) return;
-  clearTimeout(ncFixTimer);
-  ncFixTimer = setTimeout(() => {
-    if (!win || win.isDestroyed() || ncFixRunning) return;
-    ncFixRunning = true;
-    try {
-      const buf = win.getNativeWindowHandle();
-      const hwnd = buf.length === 8 ? buf.readBigUInt64LE(0).toString() : String(buf.readUInt32LE(0));
-      const ps = `
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public class PetNcFix {
-  [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr h, int idx);
-  [DllImport("user32.dll")] public static extern int SetWindowLong(IntPtr h, int idx, int val);
-  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
-  [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int val, int size);
-  public static void Apply(long ptr) {
-    IntPtr h = new IntPtr(ptr);
-    int st = (GetWindowLong(h, -16) & ~0x00CF0000) | unchecked((int)0x80000000);
-    SetWindowLong(h, -16, st);
-    int ex = GetWindowLong(h, -20) | 0x08000080;
-    SetWindowLong(h, -20, ex);
-    int ncrp = 1;
-    DwmSetWindowAttribute(h, 2, ref ncrp, 4);
-    SetWindowPos(h, IntPtr.Zero, 0, 0, 0, 0, 0x0037);
-  }
-}
-"@
-[PetNcFix]::Apply(${hwnd})
-`;
-      execFile('powershell', ['-NoProfile', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', ps], { windowsHide: true }, () => {
-        ncFixRunning = false;
-      });
-    } catch (_) {
-      ncFixRunning = false;
-    }
-  }, 60);
+  reapplyFramelessWin32(win);
 }
 
 function createWindow() {
@@ -539,22 +525,27 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: false,
       backgroundThrottling: false
     }
   });
 
   mainWindow.setMenu(null);
   mainWindow.setMenuBarVisibility(false);
+  installFramelessWin32Hook(mainWindow);
   if (currentSettings.alwaysOnTop) {
     mainWindow.setAlwaysOnTop(true, 'pop-up-menu');
   }
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
   mainWindow.on('system-context-menu', (e) => e.preventDefault());
   mainWindow.on('blur', () => suppressNonClientFrame(mainWindow));
+  mainWindow.on('show', () => suppressNonClientFrame(mainWindow));
+  mainWindow.on('move', () => suppressNonClientFrame(mainWindow));
   mainWindow.loadFile(path.join(__dirname, '../src/index.html'));
 
   mainWindow.once('ready-to-show', () => {
     console.log('[BongoCat] Window ready-to-show at:', mainWindow.getBounds(), 'on display:', def.display.bounds);
+    installFramelessWin32Hook(mainWindow);
     mainWindow.showInactive();
     suppressNonClientFrame(mainWindow);
   });
