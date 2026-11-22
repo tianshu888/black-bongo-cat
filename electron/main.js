@@ -288,7 +288,8 @@ function createTray() {
           { label: '打盹', click: () => sendPlay('demoNap') },
           { label: '跑酷', click: () => sendPlay('demoZoomies') },
           { label: '抓飞虫', click: () => sendPlay('demoBug') },
-          { label: '钻纸箱', click: () => sendPlay('demoBox') }
+          { label: '钻纸箱', click: () => sendPlay('demoBox') },
+          { label: '翻跟斗', click: () => sendPlay('demoSomersault') }
         ]
       },
       { type: 'separator' },

@@ -1,5 +1,18 @@
 # 更新记录 (Changelog)
 
+## v2.4.0 (2026-11-22)
+
+### 真实全身猫咪预设动画升级 & 新增「翻跟斗」
+- **脊柱关节与尾尖一体骨骼升级**（[catRig.js](src/catRig.js)、[app.js](src/app.js)）：新增髋部脊柱轴 `torsoPivot`、后腿收拢组 `hindLegsGroup` 与一体关节 `tailPivot`，修好高举尾巴时尾尖（`tailTip`）与尾身分离的问题，并让双臂随脊柱前倾自然联动。
+- **全套真实猫咪姿态重塑**（[behaviors.js](src/behaviors.js)）：
+  - **趴睡打盹 / 累趴（`nap` / `exhausted`）**：3/4 侧身水平趴卧在桌面，后腿压扁、双前爪交叠在前当枕头、下巴放低闭合打盹；
+  - **双手捧吃猫条（`feedChuru`）**：双前爪合抱扶稳橙色猫条包在胸前，舔食奶油头并冒红心；
+  - **瑜伽伸懒腰（`stretch`）**：压低胸肩与前爪伸展、抬高臀部与拱高长尾、仰头眯眼伸舌打哈欠；
+  - **干饭 / 罐头（`feedKibble` / `feedCan`）**：整段脊柱转身前倾俯向食碗舔食；
+  - **面包揣手（`loaf`）**：后腿压扁隐藏，双臂收拢折叠藏进圆润压扁身躯下；
+  - **伏地抓虫（`bugHunt`）**：低伏贴地摇屁股准备动作，再纵身跳起双爪抓蛾。
+- **新增「翻跟斗」预设动作**（[behaviors.js](src/behaviors.js)、[settings.html](src/settings.html)、[main.js](electron/main.js)）：可在档案界面「动作演示」及托盘右键菜单触发「翻跟斗（`demoSomersault`）」，心情高于 75 时闲暇偶尔也会自己耍一个 360° 空中前滚翻。
+
 ## v2.3.3 (2026-11-22)
 
 ### 彻底根治 Windows 透明窗口顶部蓝条 & 键盘朝向校准

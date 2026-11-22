@@ -77,6 +77,7 @@ scene.add(fillLight);
 // 2. RIG, PROPS & BEHAVIOR STATE MACHINE
 // ============================================================================
 const rig = createCatRig(scene);
+rig.torsoPivot.rotation.order = 'YXZ';
 const props = createProps(scene);
 
 const state = {
@@ -90,7 +91,13 @@ const state = {
     pitch: 0, vPitch: 0, targetPitch: 0,
     roll: 0, vRoll: 0, targetRoll: 0,
     bodyX: 0, vBodyX: 0, targetBodyX: 0,
-    bodyY: 0, vBodyY: 0, targetBodyY: 0
+    bodyY: 0, vBodyY: 0, targetBodyY: 0,
+    bodyZ: 0, vBodyZ: 0, targetBodyZ: 0,
+    torsoPitch: 0, vTorsoPitch: 0, targetTorsoPitch: 0,
+    torsoYaw: 0, vTorsoYaw: 0, targetTorsoYaw: 0,
+    torsoRoll: 0, vTorsoRoll: 0, targetTorsoRoll: 0,
+    torsoScale: new THREE.Vector3(1, 1, 1),
+    hindTuck: 0
   },
   jelly: { x: 0, vx: 0, targetX: 0, y: 0, vy: 0, targetY: 0 },
 
@@ -612,6 +619,21 @@ const tempSh = new THREE.Vector3();
 const tempEl = new THREE.Vector3();
 const tempMouseWorld = new THREE.Vector3();
 const strikeGoal = new THREE.Vector3();
+const unitVec3 = new THREE.Vector3(1, 1, 1);
+
+function computeTorsoShoulder(sx, r, out) {
+  const dy = 0.50;
+  const dz = 0.53;
+  const cp = Math.cos(r.torsoPitch);
+  const sp = Math.sin(r.torsoPitch);
+  const cy = Math.cos(r.torsoYaw);
+  const sy = Math.sin(r.torsoYaw);
+  const y1 = dy * cp - dz * sp;
+  const z1 = dy * sp + dz * cp;
+  const x2 = sx * cy + z1 * sy;
+  const z2 = -sx * sy + z1 * cy;
+  out.set(x2, -0.52 + y1, -0.05 + z2);
+}
 
 function update3DScene() {
   const now = performance.now();
@@ -621,8 +643,9 @@ function update3DScene() {
   const behOv = behaviors.step(now, ndcPointer, camera);
 
   // A. Posture & Rig Targets
-  let tYaw = 0, tPitch = 0, tRoll = 0, tBodyX = 0;
+  let tYaw = 0, tPitch = 0, tRoll = 0, tBodyX = 0, tBodyZ = 0;
   let tBodyY = Math.sin(state.breathPhase) * 0.015;
+  let tTorsoPitch = 0, tTorsoYaw = 0, tTorsoRoll = 0;
   let desiredDilate = 1.0;
 
   if (state.isPetting) {
@@ -641,6 +664,10 @@ function update3DScene() {
     tRoll = behOv.roll;
     tBodyX = behOv.bodyX;
     tBodyY += behOv.bodyY;
+    tBodyZ = behOv.bodyZ || 0;
+    tTorsoPitch = behOv.torsoPitch || 0;
+    tTorsoYaw = behOv.torsoYaw || 0;
+    tTorsoRoll = behOv.torsoRoll || 0;
     desiredDilate = behOv.dilate || 1.0;
     state.jelly.targetX = 0;
     state.jelly.targetY = 0;
@@ -667,11 +694,15 @@ function update3DScene() {
   }
 
   const r = state.rigSpring;
-  r.targetYaw = Math.max(-0.85, Math.min(0.85, tYaw));
-  r.targetPitch = Math.max(-0.46, Math.min(0.46, tPitch));
-  r.targetRoll = Math.max(-0.38, Math.min(0.38, tRoll));
+  r.targetYaw = Math.max(-0.95, Math.min(0.95, tYaw));
+  r.targetPitch = Math.max(-0.85, Math.min(0.85, tPitch));
+  r.targetRoll = Math.max(-0.45, Math.min(0.45, tRoll));
   r.targetBodyX = Math.max(-1.8, Math.min(1.8, tBodyX));
-  r.targetBodyY = Math.max(-0.4, Math.min(0.4, tBodyY));
+  r.targetBodyY = Math.max(-0.55, Math.min(0.95, tBodyY));
+  r.targetBodyZ = Math.max(-0.7, Math.min(0.7, tBodyZ));
+  r.targetTorsoPitch = Math.max(-0.45, Math.min(1.18, tTorsoPitch));
+  r.targetTorsoYaw = Math.max(-0.85, Math.min(0.85, tTorsoYaw));
+  r.targetTorsoRoll = Math.max(-0.45, Math.min(0.45, tTorsoRoll));
 
   r.vYaw = (r.vYaw + (r.targetYaw - r.yaw) * 0.18) * 0.74;
   r.yaw += r.vYaw;
@@ -683,10 +714,32 @@ function update3DScene() {
   r.bodyX += r.vBodyX;
   r.vBodyY = (r.vBodyY + (r.targetBodyY - r.bodyY) * 0.16) * 0.76;
   r.bodyY += r.vBodyY;
+  r.vBodyZ = (r.vBodyZ + (r.targetBodyZ - r.bodyZ) * 0.16) * 0.76;
+  r.bodyZ += r.vBodyZ;
+  r.vTorsoPitch = (r.vTorsoPitch + (r.targetTorsoPitch - r.torsoPitch) * 0.16) * 0.76;
+  r.torsoPitch += r.vTorsoPitch;
+  r.vTorsoYaw = (r.vTorsoYaw + (r.targetTorsoYaw - r.torsoYaw) * 0.16) * 0.76;
+  r.torsoYaw += r.vTorsoYaw;
+  r.vTorsoRoll = (r.vTorsoRoll + (r.targetTorsoRoll - r.torsoRoll) * 0.16) * 0.76;
+  r.torsoRoll += r.vTorsoRoll;
+
+  const targetScale = (behOv && behOv.torsoScale) ? behOv.torsoScale : unitVec3;
+  r.torsoScale.lerp(targetScale, 0.16);
+  rig.torsoMesh.scale.copy(r.torsoScale);
+
+  const targetHind = behOv ? (behOv.hindTuck || 0) : 0;
+  r.hindTuck += (targetHind - r.hindTuck) * 0.16;
+  const ht = r.hindTuck;
+  const hScaleY = Math.max(0.26, 1 - 0.62 * ht);
+  rig.hindLegsGroup.scale.set(1 + 0.08 * ht, hScaleY, 1 - 0.22 * ht);
+  rig.hindLegsGroup.position.set(0, -0.77 * (1 - hScaleY), -0.14 * ht);
 
   rig.catRoot.position.x = 0.18 + r.bodyX;
   rig.catRoot.position.y = 0.02 + r.bodyY;
+  rig.catRoot.position.z = -0.35 + r.bodyZ;
+  rig.catRoot.rotation.x = (behOv && typeof behOv.catFlipX === 'number') ? behOv.catFlipX : 0;
   rig.catRoot.rotation.z = -r.bodyX * 0.10;
+  rig.torsoPivot.rotation.set(r.torsoPitch, r.torsoYaw, r.torsoRoll);
   rig.headPivot.rotation.set(r.pitch, r.yaw, r.roll);
 
   // B. Jelly Head Vertex Deformation
@@ -773,13 +826,26 @@ function update3DScene() {
   if (behOv && (behOv.leftPawPos || behOv.rightPawPos)) {
     state.leftPaw.pos.lerp(behOv.leftPawPos || state.leftPaw.rest, 0.38);
     state.rightPaw.pos.lerp(behOv.rightPawPos || state.rightPaw.rest, 0.38);
-    rig.leftArm3D.pawMesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.35);
-    rig.rightArm3D.pawMesh.scale.lerp(new THREE.Vector3(1, 1, 1), 0.35);
-    tempSh.set(-0.40, -0.02, 0.48);
-    tempEl.set((tempSh.x + state.rightPaw.pos.x) * 0.5 - 0.10, (tempSh.y + state.rightPaw.pos.y) * 0.5 - 0.04, (tempSh.z + state.rightPaw.pos.z) * 0.5 + 0.14);
+    rig.leftArm3D.pawMesh.scale.lerp(unitVec3, 0.35);
+    rig.rightArm3D.pawMesh.scale.lerp(unitVec3, 0.35);
+    if (behOv.rightShoulder) tempSh.copy(behOv.rightShoulder);
+    else computeTorsoShoulder(-0.40, r, tempSh);
+    const reo = behOv.rightElbowOffset;
+    tempEl.set(
+      (tempSh.x + state.rightPaw.pos.x) * 0.5 + (reo ? reo.x : -0.10),
+      (tempSh.y + state.rightPaw.pos.y) * 0.5 + (reo ? reo.y : -0.04),
+      (tempSh.z + state.rightPaw.pos.z) * 0.5 + (reo ? reo.z : 0.14)
+    );
     rig.rightArm3D.updateArm(tempSh, tempEl, state.rightPaw.pos);
-    tempSh.set(0.38, -0.02, 0.48);
-    tempEl.set((tempSh.x + state.leftPaw.pos.x) * 0.5 + 0.08, (tempSh.y + state.leftPaw.pos.y) * 0.5 - 0.04, (tempSh.z + state.leftPaw.pos.z) * 0.5 + 0.14);
+
+    if (behOv.leftShoulder) tempSh.copy(behOv.leftShoulder);
+    else computeTorsoShoulder(0.38, r, tempSh);
+    const leo = behOv.leftElbowOffset;
+    tempEl.set(
+      (tempSh.x + state.leftPaw.pos.x) * 0.5 + (leo ? leo.x : 0.08),
+      (tempSh.y + state.leftPaw.pos.y) * 0.5 + (leo ? leo.y : -0.04),
+      (tempSh.z + state.leftPaw.pos.z) * 0.5 + (leo ? leo.z : 0.14)
+    );
     rig.leftArm3D.updateArm(tempSh, tempEl, state.leftPaw.pos);
   } else {
     if (state.leftPaw.timer > 0) {
@@ -859,12 +925,10 @@ function update3DScene() {
   state.tailPhase += tailSpeed;
   const wag = Math.sin(state.tailPhase) * 0.12;
   const tailHigh = behOv ? (behOv.tailHigh || 0) : 0;
-  rig.tailMesh.rotation.z = wag * 0.45 + tailHigh;
-  rig.tailTip.position.set(
-    rig.tailBasePts[3].x - wag * 0.08 - tailHigh * 0.35,
-    rig.tailBasePts[3].y + wag * 0.55 + tailHigh * 0.7,
-    rig.tailBasePts[3].z
-  );
+  const tailBack = behOv ? (behOv.tailBack || 0) : 0;
+  rig.tailPivot.rotation.x = tailBack;
+  rig.tailPivot.rotation.z = wag * 0.45 + tailHigh;
+  rig.tailPivot.rotation.y = wag * 0.35;
 }
 
 function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
@@ -877,6 +941,10 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
 
   const prevCatPos = rig.catRoot.position.clone();
   const prevCatRot = rig.catRoot.rotation.clone();
+  const prevTorsoRot = rig.torsoPivot.rotation.clone();
+  const prevTorsoScale = rig.torsoMesh.scale.clone();
+  const prevHindScale = rig.hindLegsGroup.scale.clone();
+  const prevHindPos = rig.hindLegsGroup.position.clone();
   const prevHeadRot = rig.headPivot.rotation.clone();
   const prevUpL = rig.leftEye3D.upperLidPivot.rotation.x;
   const prevLoL = rig.leftEye3D.lowerLidPivot.rotation.x;
@@ -897,6 +965,10 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
   try {
     rig.catRoot.position.set(0, 0, 0);
     rig.catRoot.rotation.set(0, 0, 0);
+    rig.torsoPivot.rotation.set(0, 0, 0);
+    rig.torsoMesh.scale.set(1, 1, 1);
+    rig.hindLegsGroup.scale.set(1, 1, 1);
+    rig.hindLegsGroup.position.set(0, 0, 0);
     rig.leftEye3D.pupilPivot.rotation.set(0, 0, 0);
     rig.rightEye3D.pupilPivot.rotation.set(0, 0, 0);
 
@@ -974,6 +1046,10 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
     hiddenProps.forEach((g, idx) => { g.visible = prevVis[idx]; });
     rig.catRoot.position.copy(prevCatPos);
     rig.catRoot.rotation.copy(prevCatRot);
+    rig.torsoPivot.rotation.copy(prevTorsoRot);
+    rig.torsoMesh.scale.copy(prevTorsoScale);
+    rig.hindLegsGroup.scale.copy(prevHindScale);
+    rig.hindLegsGroup.position.copy(prevHindPos);
     rig.headPivot.rotation.copy(prevHeadRot);
     rig.leftEye3D.upperLidPivot.rotation.x = prevUpL;
     rig.leftEye3D.lowerLidPivot.rotation.x = prevLoL;

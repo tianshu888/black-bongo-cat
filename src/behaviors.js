@@ -75,7 +75,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     behavior.lastInputTime = performance.now();
     if (!canWork()) return;
     // Typing or working immediately exits autonomous rest/play & vanishes temporary props!
-    if (['loaf', 'nap', 'groom', 'stretch', 'tailChase', 'zoomies', 'bugHunt', 'boxPeek', 'playYarn'].includes(behavior.mode)) {
+    if (['loaf', 'nap', 'groom', 'stretch', 'tailChase', 'zoomies', 'bugHunt', 'boxPeek', 'playYarn', 'somersault'].includes(behavior.mode)) {
       exitToWork();
     }
   }
@@ -84,12 +84,12 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     props.foodBowlGroup.visible = false;
     props.tunaCanGroup.visible = false;
     props.churuGroup.visible = false;
+    props.churuGroup.rotation.set(0, 0, 0);
     props.wandGroup.visible = false;
     props.yarnGroup.visible = false;
     props.bugGroup.visible = false;
     props.boxGroup.visible = false;
     rig.tonguePivot.visible = false;
-    rig.torsoMesh.scale.set(1, 1, 1);
     rig.leftEar.rotation.set(0.08, 0.12, 0.24);
     rig.rightEar.rotation.set(0.08, -0.12, -0.24);
   }
@@ -286,6 +286,8 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       behavior.duration = 340;
       props.boxGroup.visible = true;
       props.boxGroup.scale.set(0.01, 0.01, 0.01);
+    } else if (type === 'somersault') {
+      behavior.duration = 105;
     }
   }
 
@@ -303,7 +305,8 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       demoNap: 'nap',
       demoZoomies: 'zoomies',
       demoBug: 'bugHunt',
-      demoBox: 'boxPeek'
+      demoBox: 'boxPeek',
+      demoSomersault: 'somersault'
     };
     const m = map[action.type];
     if (m) startMode(m);
@@ -396,6 +399,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
         if ((gameState.energy ?? 90) < 55) pool.push('nap', 'nap', 'loaf');
         if (!userSettings.focusNoDisturb) {
           if ((gameState.mood ?? 80) > 65) pool.push('zoomies', 'playYarn');
+          if ((gameState.mood ?? 80) > 75) pool.push('somersault');
           pool.push('bugHunt', 'boxPeek');
         }
         const pick = pool[Math.floor(Math.random() * pool.length)];
@@ -408,7 +412,9 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
     // Default behavior frame overrides
     const ov = {
-      yaw: 0, pitch: 0, roll: 0, bodyX: 0, bodyY: 0,
+      yaw: 0, pitch: 0, roll: 0, bodyX: 0, bodyY: 0, bodyZ: 0,
+      torsoPitch: 0, torsoYaw: 0, torsoRoll: 0,
+      torsoScale: null, hindTuck: 0, catFlipX: null,
       squint: 0, dilate: 1.0, blush: 0,
       rightPawPos: null, leftPawPos: null,
       rightElbowOffset: null, leftElbowOffset: null,
@@ -420,25 +426,35 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     const t = behavior.timer;
 
     // =========================================================================
-    // 0. EXHAUSTED RESTING (Out of stamina -> slumped flat, slow recovery!)
+    // 0. EXHAUSTED RESTING (Flat 3/4 horizontal belly flop, slow stamina recovery)
     // =========================================================================
     if (behavior.mode === 'exhausted') {
-      ov.bodyY = -0.17 + Math.sin(t * 0.05) * 0.018;
-      ov.pitch = 0.30 + Math.sin(t * 0.05) * 0.025;
-      ov.roll = 0.05;
-      ov.squint = 0.90;
+      ov.bodyX = -0.18;
+      ov.bodyY = -0.22 + Math.sin(t * 0.05) * 0.014;
+      ov.bodyZ = -0.26;
+      ov.torsoYaw = 0.72;
+      ov.torsoPitch = 1.08 + Math.sin(t * 0.05) * 0.02;
+      ov.torsoRoll = 0.04;
+      ov.pitch = -0.76;
+      ov.yaw = -0.38;
+      ov.roll = 0.20;
+      ov.squint = 1.12;
       ov.tailSpeed = 0.015;
-      rig.torsoMesh.scale.set(1.08, 0.88, 1.04);
-      ov.rightPawPos = new THREE.Vector3(-0.24, -0.74, 0.54);
-      ov.leftPawPos = new THREE.Vector3(0.24, -0.74, 0.54);
+      ov.tailHigh = -0.10;
+      ov.hindTuck = 0.90;
+      ov.torsoScale = new THREE.Vector3(1.12, 1.12, 0.68);
+      ov.rightPawPos = new THREE.Vector3(0.38, -0.78, 0.72);
+      ov.leftPawPos = new THREE.Vector3(0.68, -0.78, 0.64);
+      ov.rightElbowOffset = new THREE.Vector3(-0.10, -0.06, -0.04);
+      ov.leftElbowOffset = new THREE.Vector3(0.10, -0.06, -0.04);
       if (t % 85 === 25) {
-        props.spawnFxText('Zzz', '#94a3b8', new THREE.Vector3(0.35, 1.05, 0.4), 0.015, 48);
+        props.spawnFxText('Zzz', '#cbd5e1', new THREE.Vector3(0.45, 0.75, 0.45), 0.015, 48);
       }
       return ov;
     }
 
     // =========================================================================
-    // 1. FEEDING MODES (Bowl/Can pop in -> Eat -> Rapid Stamina Recovery!)
+    // 1. FEEDING MODES (Torso leans down toward bowl -> Munch & Lick!)
     // =========================================================================
     if (behavior.mode === 'feedKibble' || behavior.mode === 'feedCan') {
       const isCan = behavior.mode === 'feedCan';
@@ -448,22 +464,33 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       const sc = enterS * exitS;
       prop.scale.set(sc, sc, sc);
 
-      if (t > 20 && t < behavior.duration - 35) {
+      if (t > 16 && t < behavior.duration - 35) {
         const chew = Math.sin(t * 0.42);
-        ov.bodyX = 0.28;
-        ov.bodyY = -0.10 + Math.max(0, chew) * 0.03;
-        ov.yaw = 0.56;
-        ov.pitch = 0.34 + chew * 0.14;
-        ov.squint = 0.72;
+        ov.bodyX = 0.40;
+        ov.bodyY = -0.14 + Math.max(0, chew) * 0.025;
+        ov.bodyZ = 0.10;
+        ov.torsoYaw = 0.56;
+        ov.torsoPitch = 0.74 + chew * 0.08;
+        ov.yaw = 0.14;
+        ov.pitch = 0.16 + chew * 0.14;
+        ov.squint = 0.75;
         ov.blush = 0.38;
         ov.tailSpeed = 0.14;
-        rig.tonguePivot.visible = t % 16 < 7;
+        ov.hindTuck = 0.55;
+        ov.rightPawPos = new THREE.Vector3(0.28, -0.76, 0.86);
+        ov.leftPawPos = new THREE.Vector3(0.76, -0.76, 0.72);
+        rig.tonguePivot.visible = t % 14 < 7;
         rig.tonguePivot.rotation.x = 0.25 + chew * 0.25;
         if (t % 22 === 0 && window.catSound.playCrunch) window.catSound.playCrunch();
         if (isCan && t % 28 === 0) {
-          props.spawnFxText('♥', '#fb7185', new THREE.Vector3(0.45, 0.85, 0.4), 0.02, 34);
+          props.spawnFxText('♥', '#fb7185', new THREE.Vector3(0.75, 0.65, 0.5), 0.02, 34);
         }
       } else if (t >= behavior.duration - 35) {
+        ov.bodyX = 0.28;
+        ov.bodyY = -0.06;
+        ov.torsoYaw = 0.35;
+        ov.torsoPitch = 0.24;
+        ov.yaw = 0.25;
         ov.squint = 0.9;
         ov.blush = 0.45;
         rig.tonguePivot.visible = t % 14 < 7;
@@ -483,36 +510,43 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 2. CHURU TREAT LICKING (Cursor holds Churu stick, cat tracks & licks!)
+    // 2. CHURU TREAT LICKING (Cat clasps Churu packet with BOTH paws & licks!)
     // =========================================================================
     if (behavior.mode === 'feedChuru') {
       ov.isInteractivePropActive = true;
-      const wPos = getCursorWorldAtZ(ndcPointer, camera, 1.05);
-      wPos.x = Math.max(-2.2, Math.min(2.2, wPos.x));
-      wPos.y = Math.max(-0.9, Math.min(1.5, wPos.y));
-      props.churuGroup.position.copy(wPos);
+      const rawPos = getCursorWorldAtZ(ndcPointer, camera, 0.44);
+      const holdX = Math.max(-0.22, Math.min(0.58, rawPos.x * 0.45 + 0.18 * 0.55));
+      const holdY = Math.max(0.06, Math.min(0.46, rawPos.y * 0.35 + 0.30 * 0.65));
+      props.churuGroup.position.set(holdX, holdY, 0.42);
+      props.churuGroup.rotation.set(0, 0, -0.35);
 
-      const dx = wPos.x - 0.18;
-      const dy = wPos.y - 0.75;
-      const dist = Math.hypot(dx, dy);
-      ov.yaw = Math.max(-0.75, Math.min(0.75, dx * 0.45));
-      ov.pitch = Math.max(-0.4, Math.min(0.45, -dy * 0.45));
+      ov.bodyY = -0.06;
+      ov.torsoPitch = 0.20;
+      ov.hindTuck = 0.45;
+
+      const cx = holdX - 0.18;
+      const cy = holdY + 0.04;
+      const cz = 0.77;
+      ov.rightPawPos = new THREE.Vector3(cx - 0.14, cy - 0.22, cz - 0.02);
+      ov.leftPawPos = new THREE.Vector3(cx + 0.16, cy - 0.22, cz - 0.02);
+      ov.rightElbowOffset = new THREE.Vector3(-0.12, -0.08, 0.06);
+      ov.leftElbowOffset = new THREE.Vector3(0.12, -0.08, 0.06);
+
+      ov.yaw = Math.max(-0.45, Math.min(0.45, cx * 0.75));
+      ov.pitch = Math.max(-0.2, Math.min(0.45, (0.48 - holdY) * 0.65)) + Math.sin(t * 0.55) * 0.05;
       ov.dilate = 1.48;
-      ov.blush = 0.35;
+      ov.blush = 0.42;
+      ov.squint = 0.68;
+      ov.tailSpeed = 0.16;
 
       if (behavior.churuCooldown > 0) behavior.churuCooldown--;
-      if (dist < 1.15 && behavior.churuCooldown <= 0) {
-        rig.tonguePivot.visible = true;
-        rig.tonguePivot.rotation.x = 0.15 + Math.sin(t * 0.75) * 0.35;
-        ov.squint = 0.65;
-        if (t % 12 === 0) {
-          behavior.churuLicks++;
-          behavior.churuCooldown = 6;
-          if (window.catSound.playLick) window.catSound.playLick();
-          props.spawnFxText('♥', '#fb7185', new THREE.Vector3(0.2 + dx * 0.3, 0.9, 0.5), 0.02, 26);
-        }
-      } else {
-        rig.tonguePivot.visible = false;
+      rig.tonguePivot.visible = true;
+      rig.tonguePivot.rotation.x = 0.18 + Math.sin(t * 0.75) * 0.35;
+      if (behavior.churuCooldown <= 0 && t % 12 === 0) {
+        behavior.churuLicks++;
+        behavior.churuCooldown = 6;
+        if (window.catSound.playLick) window.catSound.playLick();
+        props.spawnFxText('♥', '#fb7185', new THREE.Vector3(holdX, holdY + 0.55, 0.55), 0.02, 26);
       }
 
       if (behavior.churuLicks >= 9 || t >= behavior.duration) {
@@ -658,18 +692,27 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 6. KITTY STRETCH (Stretch paws forward low, tail high, tremble yawn!)
+    // 6. KITTY STRETCH (3/4 Yoga Bow: high rump & arched tail on right, extended paws on left!)
     // =========================================================================
     if (behavior.mode === 'stretch') {
-      const p = Math.sin(Math.min(1, t / behavior.duration) * Math.PI);
-      ov.bodyY = -0.18 * p;
-      ov.pitch = -0.18 * p;
-      ov.squint = 0.85 * p;
-      ov.tailHigh = 0.72 * p + (t > 45 && t < 130 ? Math.sin(t * 0.8) * 0.06 : 0);
-      ov.rightPawPos = new THREE.Vector3(-0.32, -0.74, 0.82 + 0.14 * p);
-      ov.leftPawPos = new THREE.Vector3(0.32, -0.74, 0.82 + 0.14 * p);
-      rig.tonguePivot.visible = t > 35 && t < 110;
-      rig.torsoMesh.scale.set(1 + 0.06 * p, 1 - 0.10 * p, 1 + 0.12 * p);
+      const p = t < 35 ? t / 35 : (t > 155 ? Math.max(0, (behavior.duration - t) / 35) : 1);
+      ov.bodyX = 0.22 * p;
+      ov.bodyY = -0.10 * p;
+      ov.bodyZ = -0.32 * p;
+      ov.torsoYaw = -0.72 * p;
+      ov.torsoPitch = 0.96 * p;
+      ov.pitch = -0.78 * p;
+      ov.yaw = 0.34 * p;
+      ov.squint = 0.90 * p;
+      ov.tailHigh = 0.95 * p + (t > 45 && t < 145 ? Math.sin(t * 0.7) * 0.06 : 0);
+      ov.tailBack = -1.15 * p;
+      ov.hindTuck = 0.10 * p;
+      ov.rightPawPos = new THREE.Vector3(-0.30 - 0.44 * p, -0.78, 0.78 - 0.22 * p);
+      ov.leftPawPos = new THREE.Vector3(0.30 - 0.52 * p, -0.78, 0.78 + 0.10 * p);
+      ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, 0.02);
+      ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, 0.02);
+      rig.tonguePivot.visible = t > 35 && t < 115;
+      ov.torsoScale = new THREE.Vector3(1 - 0.05 * p, 1 + 0.18 * p, 1 - 0.18 * p);
       if (t >= behavior.duration) {
         addStats({ energy: 8, mood: 6 });
         exitToWork();
@@ -678,35 +721,49 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 7. CAT LOAF (Tucked paws underneath squished plush body)
+    // 7. CAT LOAF (Chubby bread loaf with paws folded completely underneath)
     // =========================================================================
     if (behavior.mode === 'loaf') {
-      ov.bodyY = -0.12;
-      ov.pitch = 0.06;
-      ov.squint = 0.62;
-      ov.blush = 0.18;
+      ov.bodyY = -0.18;
+      ov.torsoPitch = 0.26;
+      ov.pitch = -0.16;
+      ov.squint = 0.65;
+      ov.blush = 0.20;
       ov.tailSpeed = 0.02;
-      rig.torsoMesh.scale.set(1.10, 0.88, 1.04);
-      ov.rightPawPos = new THREE.Vector3(-0.18, -0.74, 0.42);
-      ov.leftPawPos = new THREE.Vector3(0.18, -0.74, 0.42);
+      ov.hindTuck = 0.95;
+      ov.torsoScale = new THREE.Vector3(1.18, 0.80, 1.14);
+      ov.rightPawPos = new THREE.Vector3(-0.14, -0.66, 0.22);
+      ov.leftPawPos = new THREE.Vector3(0.14, -0.66, 0.22);
+      ov.rightElbowOffset = new THREE.Vector3(0.08, -0.18, -0.12);
+      ov.leftElbowOffset = new THREE.Vector3(-0.08, -0.18, -0.12);
       if (t >= behavior.duration) exitToWork();
       return ov;
     }
 
     // =========================================================================
-    // 8. DESK NAP (Sleepy chin rest + floating Zzz!)
+    // 8. DESK NAP (3/4 Horizontal belly-down sleep with chin on crossed paws!)
     // =========================================================================
     if (behavior.mode === 'nap') {
-      ov.bodyY = -0.14 + Math.sin(t * 0.04) * 0.015;
-      ov.pitch = 0.28 + Math.sin(t * 0.04) * 0.03;
-      ov.roll = 0.08;
-      ov.squint = 1.0;
+      ov.bodyX = -0.18;
+      ov.bodyY = -0.22 + Math.sin(t * 0.04) * 0.014;
+      ov.bodyZ = -0.26;
+      ov.torsoYaw = 0.72;
+      ov.torsoPitch = 1.08 + Math.sin(t * 0.04) * 0.025;
+      ov.torsoRoll = 0.04;
+      ov.pitch = -0.76;
+      ov.yaw = -0.38;
+      ov.roll = 0.20;
+      ov.squint = 1.12;
       ov.tailSpeed = 0.015;
-      rig.torsoMesh.scale.set(1.06, 0.92, 1.02);
-      ov.rightPawPos = new THREE.Vector3(-0.22, -0.74, 0.50);
-      ov.leftPawPos = new THREE.Vector3(0.22, -0.74, 0.50);
+      ov.tailHigh = -0.10;
+      ov.hindTuck = 0.90;
+      ov.torsoScale = new THREE.Vector3(1.12, 1.12, 0.68);
+      ov.rightPawPos = new THREE.Vector3(0.38, -0.78, 0.72);
+      ov.leftPawPos = new THREE.Vector3(0.68, -0.78, 0.64);
+      ov.rightElbowOffset = new THREE.Vector3(-0.10, -0.06, -0.04);
+      ov.leftElbowOffset = new THREE.Vector3(0.10, -0.06, -0.04);
       if (t % 70 === 20) {
-        props.spawnFxText('Zzz', '#cbd5e1', new THREE.Vector3(0.35, 1.15, 0.4), 0.016, 52);
+        props.spawnFxText('Zzz', '#e2e8f0', new THREE.Vector3(0.45, 0.75, 0.45), 0.016, 52);
       }
       if (t >= behavior.duration) exitToWork();
       return ov;
@@ -784,20 +841,30 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
           const ty = 0.95 + Math.cos(behavior.bugAngle * 2.1) * 0.35;
           behavior.bugPos.x += (tx - behavior.bugPos.x) * 0.04;
           behavior.bugPos.y += (ty - behavior.bugPos.y) * 0.04;
-          // Ekekek chatter stance!
-          ov.bodyY = -0.10;
-          ov.yaw = Math.max(-0.78, Math.min(0.78, (behavior.bugPos.x - 0.18) * 0.55));
-          ov.pitch = -0.24 + Math.sin(t * 1.2) * 0.04;
+          // Flat predator crouch + butt-wiggle ekekek!
+          ov.bodyY = -0.24;
+          ov.bodyZ = -0.18;
+          ov.torsoYaw = Math.max(-0.55, Math.min(0.55, (behavior.bugPos.x - 0.18) * 0.45));
+          ov.torsoPitch = 0.86;
+          ov.torsoRoll = Math.sin(t * 0.45) * 0.09;
+          ov.hindTuck = 0.80;
+          ov.torsoScale = new THREE.Vector3(1.06, 0.95, 1.04);
+          ov.yaw = Math.max(-0.55, Math.min(0.55, (behavior.bugPos.x - 0.18) * 0.35));
+          ov.pitch = -0.72 + Math.sin(t * 1.1) * 0.05;
           ov.dilate = 1.56;
           ov.tailSpeed = 0.25;
+          ov.rightPawPos = new THREE.Vector3(-0.26, -0.76, 0.74);
+          ov.leftPawPos = new THREE.Vector3(0.26, -0.76, 0.74);
         } else {
-          // Swoop lower within paw reach -> Pounce & catch!
-          behavior.bugPos.lerp(new THREE.Vector3(0.18, 0.25, 0.72), 0.08);
-          ov.bodyY = 0.18;
-          ov.rightPawPos = new THREE.Vector3(-0.18, 0.15, 0.86);
-          ov.leftPawPos = new THREE.Vector3(0.18, 0.15, 0.86);
+          // Leap upward within paw reach -> Pounce & catch!
+          behavior.bugPos.lerp(new THREE.Vector3(0.18, 0.34, 0.72), 0.08);
+          ov.bodyY = 0.34;
+          ov.torsoPitch = -0.18;
+          ov.pitch = -0.12;
+          ov.rightPawPos = new THREE.Vector3(-0.20, 0.26, 0.84);
+          ov.leftPawPos = new THREE.Vector3(0.20, 0.26, 0.84);
           ov.dilate = 1.56;
-          if (t >= 175 || behavior.bugPos.distanceTo(new THREE.Vector3(0.18, 0.25, 0.72)) < 0.22) {
+          if (t >= 175 || behavior.bugPos.distanceTo(new THREE.Vector3(0.18, 0.34, 0.72)) < 0.22) {
             behavior.bugCaught = true;
             props.bugGroup.visible = false;
             if (window.catSound.playSwat) window.catSound.playSwat(true);
@@ -834,6 +901,51 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       ov.dilate = 1.35;
       ov.rightPawPos = new THREE.Vector3(-0.26, -0.36, 0.78);
       ov.leftPawPos = new THREE.Vector3(0.26, -0.36, 0.78);
+      if (t >= behavior.duration) exitToWork();
+      return ov;
+    }
+
+    // =========================================================================
+    // 13. SOMERSAULT FLIP (Crouch -> 360° Mid-Air Roll -> Squishy Landing!)
+    // =========================================================================
+    if (behavior.mode === 'somersault') {
+      if (t < 20) {
+        ov.bodyY = -0.18;
+        ov.torsoPitch = 0.65;
+        ov.pitch = -0.40;
+        ov.hindTuck = 0.75;
+        ov.squint = 0.40;
+        ov.rightPawPos = new THREE.Vector3(-0.24, -0.76, 0.72);
+        ov.leftPawPos = new THREE.Vector3(0.24, -0.76, 0.72);
+      } else if (t < 72) {
+        const p = (t - 20) / 52;
+        const ease = p * p * (3 - 2 * p);
+        ov.bodyY = 0.78 * Math.sin(p * Math.PI);
+        ov.catFlipX = ease * Math.PI * 2;
+        ov.torsoPitch = 0.35;
+        ov.torsoRoll = Math.sin(p * Math.PI) * 0.45;
+        ov.yaw = Math.sin(p * Math.PI) * 0.35;
+        ov.hindTuck = 0.85;
+        ov.tailHigh = 0.55;
+        ov.dilate = 1.45;
+        ov.rightPawPos = new THREE.Vector3(-0.18, -0.24, 0.56);
+        ov.leftPawPos = new THREE.Vector3(0.18, -0.24, 0.56);
+        if (t === 22 && window.catSound.playSwat) window.catSound.playSwat(true);
+      } else {
+        const landT = Math.min(1, (t - 72) / 33);
+        ov.bodyY = -0.14 * Math.sin(landT * Math.PI);
+        ov.torsoScale = new THREE.Vector3(1.12, 0.86, 1.08);
+        ov.squint = 0.90;
+        ov.blush = 0.45;
+        ov.tailHigh = 0.65;
+        ov.tailSpeed = 0.22;
+        if (t === 74) {
+          if (window.catSound.playBell) window.catSound.playBell();
+          addStats({ mood: 10, energy: -4 });
+          onPersistGame(gameState);
+          props.spawnFxText('翻跟斗 ✨', '#fde047', new THREE.Vector3(0.20, 0.95, 0.55), 0.018, 40);
+        }
+      }
       if (t >= behavior.duration) exitToWork();
       return ov;
     }

@@ -162,8 +162,13 @@ export function createCatRig(scene) {
   ];
   const torsoGeo = new THREE.LatheGeometry(torsoPoints, 48);
   torsoGeo.scale(0.96, 1.0, 0.68);
+  const torsoPivot = new THREE.Group();
+  torsoPivot.position.set(0, -0.52, -0.05);
+  catRoot.add(torsoPivot);
+
   const torsoMesh = new THREE.Mesh(torsoGeo, bodyFurMat);
-  catRoot.add(torsoMesh);
+  torsoMesh.position.set(0, 0.52, 0.05);
+  torsoPivot.add(torsoMesh);
 
   // Tucked hind thighs & feet
   function createHindLeg(side) {
@@ -182,29 +187,37 @@ export function createCatRig(scene) {
     grp.add(foot);
     return grp;
   }
-  catRoot.add(createHindLeg('left'));
-  catRoot.add(createHindLeg('right'));
+  const hindLegsGroup = new THREE.Group();
+  hindLegsGroup.add(createHindLeg('left'));
+  hindLegsGroup.add(createHindLeg('right'));
+  catRoot.add(hindLegsGroup);
 
-  // Tail
+  // Tail (joint-origin tailPivot prevents tailTip detachment on high raises)
+  const tailPivot = new THREE.Group();
+  tailPivot.position.set(0.55, -0.06, -0.09);
+  torsoPivot.add(tailPivot);
+
+  const tailOrigin = new THREE.Vector3(0.55, -0.58, -0.14);
   const tailBasePts = [
     new THREE.Vector3(0.55, -0.58, -0.14),
     new THREE.Vector3(1.04, -0.54, -0.08),
     new THREE.Vector3(1.24, -0.18,  0.04),
     new THREE.Vector3(1.60, -0.06,  0.14)
   ];
-  const tailCurve = new THREE.CatmullRomCurve3(tailBasePts);
+  const tailLocalPts = tailBasePts.map((pt) => pt.clone().sub(tailOrigin));
+  const tailCurve = new THREE.CatmullRomCurve3(tailLocalPts);
   const tailGeo = new THREE.TubeGeometry(tailCurve, 28, 0.125, 16, false);
   const tailMesh = new THREE.Mesh(tailGeo, bodyFurMat);
-  catRoot.add(tailMesh);
+  tailPivot.add(tailMesh);
 
   const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.126, 20, 16), bodyFurMat);
-  tailTip.position.copy(tailBasePts[3]);
-  catRoot.add(tailTip);
+  tailTip.position.copy(tailLocalPts[3]);
+  tailPivot.add(tailTip);
 
-  // Head pivot
+  // Head pivot (child of torsoPivot so leaning torso carries neck & head naturally)
   const headPivot = new THREE.Group();
-  headPivot.position.set(0, 0.54, 0.02);
-  catRoot.add(headPivot);
+  headPivot.position.set(0, 1.06, 0.07);
+  torsoPivot.add(headPivot);
 
   const headCenterGroup = new THREE.Group();
   headCenterGroup.position.set(0, 0.34, 0);
@@ -568,7 +581,10 @@ export function createCatRig(scene) {
 
   return {
     catRoot,
+    torsoPivot,
     torsoMesh,
+    hindLegsGroup,
+    tailPivot,
     tailMesh,
     tailTip,
     tailBasePts,
