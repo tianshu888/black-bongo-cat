@@ -665,56 +665,64 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 5. GROOM (Lick right paw & wipe cheek/ear!)
+    // 5. GROOM (Lick right paw up at mouth -> Wipe high across cheek & ear!)
     // =========================================================================
     if (behavior.mode === 'groom') {
       const cycle = t % 75;
+      ov.torsoYaw = -0.22;
+      ov.torsoPitch = 0.14;
+      ov.blush = 0.32;
       if (cycle < 30) {
-        // Lick paw
-        ov.yaw = -0.18;
-        ov.pitch = 0.16;
-        ov.squint = 0.45;
-        ov.rightPawPos = new THREE.Vector3(-0.18, 0.08, 0.72);
+        // Lick raised paw right in front of mouth
+        ov.yaw = -0.24;
+        ov.pitch = 0.30;
+        ov.roll = 0.18;
+        ov.squint = 0.72;
+        ov.rightPawPos = new THREE.Vector3(-0.24, 0.46, 0.64);
+        ov.rightElbowOffset = new THREE.Vector3(-0.18, -0.06, 0.12);
         rig.tonguePivot.visible = cycle % 14 < 7;
         rig.tonguePivot.rotation.x = 0.2 + Math.sin(cycle * 0.6) * 0.25;
         if (cycle === 8 || cycle === 20) {
           if (window.catSound.playLick) window.catSound.playLick();
         }
       } else {
-        // Wipe circularly over cheek
+        // Sweep paw high over cheek & ear with head leaning into paw!
         rig.tonguePivot.visible = false;
         const a = ((cycle - 30) / 45) * Math.PI * 2;
-        ov.yaw = -0.25;
-        ov.roll = 0.16;
-        ov.squint = 0.85;
-        ov.rightPawPos = new THREE.Vector3(-0.34 + Math.cos(a) * 0.10, 0.24 + Math.sin(a) * 0.12, 0.74);
+        ov.yaw = -0.32;
+        ov.pitch = 0.22 + Math.sin(a) * 0.08;
+        ov.roll = 0.32 + Math.cos(a) * 0.06;
+        ov.squint = 1.0;
+        ov.rightPawPos = new THREE.Vector3(-0.34 + Math.cos(a) * 0.12, 0.72 + Math.sin(a) * 0.16, 0.62);
+        ov.rightElbowOffset = new THREE.Vector3(-0.22, 0.02, 0.10);
       }
       if (t >= behavior.duration) exitToWork();
       return ov;
     }
 
     // =========================================================================
-    // 6. KITTY STRETCH (3/4 Yoga Bow: high rump & arched tail on right, extended paws on left!)
+    // 6. KITTY STRETCH (Classic Yoga Bow: high rump & arched tail, low chest, far-extended paws!)
     // =========================================================================
     if (behavior.mode === 'stretch') {
       const p = t < 35 ? t / 35 : (t > 155 ? Math.max(0, (behavior.duration - t) / 35) : 1);
-      ov.bodyX = 0.22 * p;
-      ov.bodyY = -0.10 * p;
-      ov.bodyZ = -0.32 * p;
-      ov.torsoYaw = -0.72 * p;
-      ov.torsoPitch = 0.96 * p;
-      ov.pitch = -0.78 * p;
-      ov.yaw = 0.34 * p;
-      ov.squint = 0.90 * p;
+      ov.bodyX = 0.56 * p;
+      ov.bodyY = 0.06 * p;
+      ov.bodyZ = -0.20 * p;
+      ov.torsoYaw = -1.25 * p;
+      ov.torsoPitch = 1.46 * p;
+      ov.pitch = -1.32 * p;
+      ov.yaw = 0.92 * p;
+      ov.roll = -0.08 * p;
+      ov.squint = 0.92 * p;
       ov.tailHigh = 0.95 * p + (t > 45 && t < 145 ? Math.sin(t * 0.7) * 0.06 : 0);
-      ov.tailBack = -1.15 * p;
-      ov.hindTuck = 0.10 * p;
-      ov.rightPawPos = new THREE.Vector3(-0.30 - 0.44 * p, -0.78, 0.78 - 0.22 * p);
-      ov.leftPawPos = new THREE.Vector3(0.30 - 0.52 * p, -0.78, 0.78 + 0.10 * p);
-      ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, 0.02);
-      ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, 0.02);
-      rig.tonguePivot.visible = t > 35 && t < 115;
-      ov.torsoScale = new THREE.Vector3(1 - 0.05 * p, 1 + 0.18 * p, 1 - 0.18 * p);
+      ov.tailBack = -1.35 * p;
+      ov.hindTuck = 0.0;
+      ov.leftPawPos = new THREE.Vector3(-0.30 - 1.15 * p, -0.78, 0.78 - 0.38 * p);
+      ov.rightPawPos = new THREE.Vector3(-0.30 - 1.28 * p, -0.78, 0.78 - 0.66 * p);
+      ov.leftElbowOffset = new THREE.Vector3(0.0, -0.06, 0.04);
+      ov.rightElbowOffset = new THREE.Vector3(0.0, -0.06, -0.04);
+      rig.tonguePivot.visible = t > 35 && t < 120;
+      ov.torsoScale = new THREE.Vector3(1 - 0.10 * p, 1 + 0.24 * p, 1 - 0.26 * p);
       if (t >= behavior.duration) {
         addStats({ energy: 8, mood: 6 });
         exitToWork();
@@ -723,21 +731,22 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 7. CAT LOAF (Chubby bread loaf with paws folded completely underneath)
+    // 7. CAT LOAF (Low chubby oval bread loaf with all 4 limbs tucked invisibly under!)
     // =========================================================================
     if (behavior.mode === 'loaf') {
-      ov.bodyY = -0.18;
-      ov.torsoPitch = 0.26;
-      ov.pitch = -0.16;
-      ov.squint = 0.65;
-      ov.blush = 0.20;
+      ov.bodyY = -0.24;
+      ov.torsoPitch = 0.48;
+      ov.pitch = -0.38;
+      ov.squint = 0.70;
+      ov.blush = 0.24;
       ov.tailSpeed = 0.02;
-      ov.hindTuck = 0.95;
-      ov.torsoScale = new THREE.Vector3(1.18, 0.80, 1.14);
-      ov.rightPawPos = new THREE.Vector3(-0.14, -0.66, 0.22);
-      ov.leftPawPos = new THREE.Vector3(0.14, -0.66, 0.22);
-      ov.rightElbowOffset = new THREE.Vector3(0.08, -0.18, -0.12);
-      ov.leftElbowOffset = new THREE.Vector3(-0.08, -0.18, -0.12);
+      ov.tailHigh = -0.35;
+      ov.hindTuck = 0.98;
+      ov.torsoScale = new THREE.Vector3(1.24, 0.74, 1.18);
+      ov.rightPawPos = new THREE.Vector3(-0.14, -0.66, 0.18);
+      ov.leftPawPos = new THREE.Vector3(0.14, -0.66, 0.18);
+      ov.rightElbowOffset = new THREE.Vector3(0.10, -0.18, -0.14);
+      ov.leftElbowOffset = new THREE.Vector3(-0.10, -0.18, -0.14);
       if (t >= behavior.duration) exitToWork();
       return ov;
     }
@@ -791,7 +800,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 10. 3AM ZOOMIES (Airplane ears, giant pupils, dash bounce left-right!)
+    // 10. 3AM ZOOMIES (Airplane ears, horizontal galloping sprint left-right!)
     // =========================================================================
     if (behavior.mode === 'zoomies') {
       // Airplane ears flattened!
@@ -799,25 +808,35 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       rig.rightEar.rotation.set(-0.35, -0.25, -0.78);
       ov.dilate = 1.56;
       ov.tailSpeed = 0.32;
-      ov.tailHigh = 0.45;
+      ov.tailHigh = 0.85;
+      ov.tailBack = -0.95;
 
       const speed = 0.095;
       behavior.zoomX += behavior.zoomDir * speed;
-      if (behavior.zoomX < -1.55) {
-        behavior.zoomX = -1.55;
+      if (behavior.zoomX < -1.45) {
+        behavior.zoomX = -1.45;
         behavior.zoomDir = 1;
         behavior.zoomBounces++;
         if (window.catSound.playSwat) window.catSound.playSwat(false);
-      } else if (behavior.zoomX > 1.35) {
-        behavior.zoomX = 1.35;
+      } else if (behavior.zoomX > 1.25) {
+        behavior.zoomX = 1.25;
         behavior.zoomDir = -1;
         behavior.zoomBounces++;
         if (window.catSound.playSwat) window.catSound.playSwat(false);
       }
+      const stride = Math.sin(t * 0.55);
+      const dir = behavior.zoomDir;
       ov.bodyX = behavior.zoomX;
-      ov.bodyY = Math.abs(Math.sin(t * 0.42)) * 0.22;
-      ov.yaw = behavior.zoomDir * 0.55;
-      ov.roll = -behavior.zoomDir * 0.18;
+      ov.bodyY = Math.abs(Math.sin(t * 0.42)) * 0.32 - 0.04;
+      ov.bodyZ = -0.18;
+      ov.torsoYaw = dir * 1.12;
+      ov.torsoPitch = 1.15 - Math.abs(stride) * 0.14;
+      ov.pitch = -1.02;
+      ov.yaw = -dir * 0.45;
+      ov.roll = -dir * 0.14;
+      ov.torsoScale = new THREE.Vector3(0.92, 1.16, 0.82);
+      ov.leftPawPos = new THREE.Vector3(dir * (0.92 + stride * 0.32), -0.58 + Math.max(0, stride) * 0.26, 0.42);
+      ov.rightPawPos = new THREE.Vector3(dir * (0.92 - stride * 0.32), -0.58 + Math.max(0, -stride) * 0.26, 0.12);
 
       if (behavior.zoomBounces >= 3 && Math.abs(behavior.zoomX) < 0.15) {
         addStats({ mood: 15, energy: -10 });
@@ -830,7 +849,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 11. BUG HUNT (Ekekek crouch -> pounce & catch glowing moth for +20 coins!)
+    // 11. BUG HUNT (3/4 flat butt-wiggle stalk -> explosive upward two-paw leap!)
     // =========================================================================
     if (behavior.mode === 'bugHunt') {
       ov.isInteractivePropActive = true;
@@ -840,25 +859,27 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
       if (!behavior.bugCaught) {
         if (t < 150) {
-          // Flutter around top-center
-          const tx = Math.sin(behavior.bugAngle * 1.3) * 1.45;
-          const ty = 0.95 + Math.cos(behavior.bugAngle * 2.1) * 0.35;
+          // Flutter around upper-left so 3/4 stalking silhouette faces moth cleanly!
+          const tx = -0.65 + Math.sin(behavior.bugAngle * 1.3) * 0.95;
+          const ty = 0.85 + Math.cos(behavior.bugAngle * 2.1) * 0.28;
           behavior.bugPos.x += (tx - behavior.bugPos.x) * 0.04;
           behavior.bugPos.y += (ty - behavior.bugPos.y) * 0.04;
-          // Flat predator crouch + butt-wiggle ekekek!
-          ov.bodyY = -0.24;
+          // 3/4 Flat predator crouch + butt-wiggle ekekek!
+          ov.bodyX = 0.42;
+          ov.bodyY = -0.18;
           ov.bodyZ = -0.18;
-          ov.torsoYaw = Math.max(-0.55, Math.min(0.55, (behavior.bugPos.x - 0.18) * 0.45));
-          ov.torsoPitch = 0.86;
-          ov.torsoRoll = Math.sin(t * 0.45) * 0.09;
-          ov.hindTuck = 0.80;
-          ov.torsoScale = new THREE.Vector3(1.06, 0.95, 1.04);
-          ov.yaw = Math.max(-0.55, Math.min(0.55, (behavior.bugPos.x - 0.18) * 0.35));
-          ov.pitch = -0.72 + Math.sin(t * 1.1) * 0.05;
+          ov.torsoYaw = -1.05;
+          ov.torsoPitch = 1.38;
+          ov.torsoRoll = Math.sin(t * 0.55) * 0.14;
+          ov.hindTuck = 0.65;
+          ov.torsoScale = new THREE.Vector3(0.96, 1.14, 0.78);
+          ov.yaw = 0.72 + Math.max(-0.25, Math.min(0.25, (behavior.bugPos.x + 0.5) * 0.2));
+          ov.pitch = -1.36 + Math.sin(t * 1.1) * 0.05;
           ov.dilate = 1.56;
-          ov.tailSpeed = 0.25;
-          ov.rightPawPos = new THREE.Vector3(-0.26, -0.76, 0.74);
-          ov.leftPawPos = new THREE.Vector3(0.26, -0.76, 0.74);
+          ov.tailSpeed = 0.28;
+          ov.tailHigh = -1.20;
+          ov.leftPawPos = new THREE.Vector3(-0.92, -0.78, 0.48);
+          ov.rightPawPos = new THREE.Vector3(-1.18, -0.78, 0.16);
         } else {
           // Leap upward within paw reach -> Pounce & catch!
           behavior.bugPos.lerp(new THREE.Vector3(0.18, 0.34, 0.72), 0.08);
