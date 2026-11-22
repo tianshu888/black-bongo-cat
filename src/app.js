@@ -695,14 +695,14 @@ function update3DScene() {
   }
 
   const r = state.rigSpring;
-  r.targetYaw = Math.max(-0.95, Math.min(0.95, tYaw));
-  r.targetPitch = Math.max(-0.85, Math.min(0.85, tPitch));
+  r.targetYaw = Math.max(-1.05, Math.min(1.05, tYaw));
+  r.targetPitch = Math.max(-1.30, Math.min(1.15, tPitch));
   r.targetRoll = Math.max(-0.45, Math.min(0.45, tRoll));
   r.targetBodyX = Math.max(-1.8, Math.min(1.8, tBodyX));
   r.targetBodyY = Math.max(-0.55, Math.min(0.95, tBodyY));
   r.targetBodyZ = Math.max(-0.7, Math.min(0.7, tBodyZ));
-  r.targetTorsoPitch = Math.max(-0.45, Math.min(1.18, tTorsoPitch));
-  r.targetTorsoYaw = Math.max(-0.85, Math.min(0.85, tTorsoYaw));
+  r.targetTorsoPitch = Math.max(-0.45, Math.min(1.58, tTorsoPitch));
+  r.targetTorsoYaw = Math.max(-1.10, Math.min(1.10, tTorsoYaw));
   r.targetTorsoRoll = Math.max(-0.45, Math.min(0.45, tTorsoRoll));
 
   r.vYaw = (r.vYaw + (r.targetYaw - r.yaw) * 0.18) * 0.74;
