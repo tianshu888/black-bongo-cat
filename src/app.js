@@ -739,7 +739,7 @@ function update3DScene() {
   rig.catRoot.position.y = 0.02 + r.bodyY;
   rig.catRoot.position.z = -0.35 + r.bodyZ;
   rig.catRoot.rotation.x = (behOv && typeof behOv.catFlipX === 'number') ? behOv.catFlipX : 0;
-  rig.catRoot.rotation.z = -r.bodyX * 0.10;
+  rig.catRoot.rotation.z = (behOv && typeof behOv.catFlipZ === 'number') ? behOv.catFlipZ : -r.bodyX * 0.10;
   rig.torsoPivot.rotation.set(r.torsoPitch, r.torsoYaw, r.torsoRoll);
   rig.headPivot.rotation.set(r.pitch, r.yaw, r.roll);
 

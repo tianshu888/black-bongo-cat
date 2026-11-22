@@ -223,9 +223,37 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     petSessionGain = 0;
   }
 
-  function startMode(type) {
+  const VARIANT_COUNTS = {
+    nap: 3,
+    exhausted: 3,
+    stretch: 2,
+    loaf: 2,
+    groom: 2,
+    feedChuru: 2,
+    feedKibble: 2,
+    feedCan: 2,
+    bugHunt: 2,
+    somersault: 2,
+    zoomies: 2
+  };
+  const lastVariants = {};
+
+  function pickVariant(type, forcedVariant) {
+    const count = VARIANT_COUNTS[type] || 1;
+    if (typeof forcedVariant === 'number' && Number.isFinite(forcedVariant)) {
+      return ((forcedVariant % count) + count) % count;
+    }
+    if (count <= 1) return 0;
+    let v = Math.floor(Math.random() * count);
+    if (v === lastVariants[type]) v = (v + 1) % count;
+    lastVariants[type] = v;
+    return v;
+  }
+
+  function startMode(type, forcedVariant = null) {
     hideAllTempProps();
     behavior.mode = type;
+    behavior.variant = pickVariant(type, forcedVariant);
     behavior.timer = 0;
     behavior.subStep = 0;
     behavior.subTimer = 0;
@@ -309,7 +337,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       demoSomersault: 'somersault'
     };
     const m = map[action.type];
-    if (m) startMode(m);
+    if (m) startMode(m, typeof action.variant === 'number' ? action.variant : null);
   }
 
   // Triggered when user clicks an interactive prop (yarn ball or bug!) inside the pet window
@@ -424,39 +452,83 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     };
 
     const t = behavior.timer;
+    const v = behavior.variant || 0;
 
-    // =========================================================================
-    // 0. EXHAUSTED RESTING (Lateral horizontal belly-down sleep, head on left paws, tail right!)
-    // =========================================================================
-    if (behavior.mode === 'exhausted') {
-      ov.bodyX = 0.52;
-      ov.bodyY = -0.14 + Math.sin(t * 0.05) * 0.012;
-      ov.bodyZ = -0.16;
-      ov.torsoYaw = -1.35;
-      ov.torsoPitch = 1.48 + Math.sin(t * 0.05) * 0.018;
-      ov.torsoRoll = 0.04;
-      ov.pitch = -1.35;
-      ov.yaw = 1.15;
-      ov.roll = -0.12;
+    // Shared 3-style sleeping pose helper (used by both nap & exhausted)
+    function applyNapStyle(styleIdx, speed) {
+      const br = Math.sin(t * speed);
       ov.squint = 1.15;
       ov.sleepEyes = true;
-      ov.blush = 0.36;
+      ov.blush = 0.40;
       ov.tailSpeed = 0.015;
-      ov.tailHigh = -1.45;
       ov.hindTuck = 0.90;
-      ov.torsoScale = new THREE.Vector3(0.96, 1.18, 0.78);
-      ov.leftPawPos = new THREE.Vector3(-1.12, -0.76, 0.50);
-      ov.rightPawPos = new THREE.Vector3(-1.38, -0.76, 0.22);
-      ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, 0.14);
-      ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, -0.08);
+      if (styleIdx === 0) {
+        // 款A: 左侧卧枕爪睡（经典款，头在左、背向右延伸、尾巴右舒）
+        ov.bodyX = 0.52;
+        ov.bodyY = -0.14 + br * 0.012;
+        ov.bodyZ = -0.16;
+        ov.torsoYaw = -1.35;
+        ov.torsoPitch = 1.48 + br * 0.018;
+        ov.torsoRoll = 0.04;
+        ov.pitch = -1.35;
+        ov.yaw = 1.15;
+        ov.roll = -0.12;
+        ov.tailHigh = -1.45;
+        ov.torsoScale = new THREE.Vector3(0.96, 1.18, 0.78);
+        ov.leftPawPos = new THREE.Vector3(-1.12, -0.76, 0.50);
+        ov.rightPawPos = new THREE.Vector3(-1.38, -0.76, 0.22);
+        ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, 0.14);
+        ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, -0.08);
+      } else if (styleIdx === 1) {
+        // 款B: 右侧卧枕爪睡（镜像翻身，头在右、背向左延伸）
+        ov.bodyX = -0.52;
+        ov.bodyY = -0.14 + br * 0.012;
+        ov.bodyZ = -0.16;
+        ov.torsoYaw = 1.35;
+        ov.torsoPitch = 1.48 + br * 0.018;
+        ov.torsoRoll = -0.04;
+        ov.pitch = -1.35;
+        ov.yaw = -1.15;
+        ov.roll = 0.12;
+        ov.tailHigh = -1.30;
+        ov.torsoScale = new THREE.Vector3(0.96, 1.18, 0.78);
+        ov.rightPawPos = new THREE.Vector3(1.12, -0.76, 0.50);
+        ov.leftPawPos = new THREE.Vector3(1.38, -0.76, 0.22);
+        ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, 0.14);
+        ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, -0.08);
+      } else {
+        // 款C: 正面摊大饼瘫睡（双前爪大大摊开，下巴贴桌融化）
+        ov.bodyX = 0.0;
+        ov.bodyY = -0.22 + br * 0.014;
+        ov.bodyZ = -0.34;
+        ov.torsoYaw = 0.0;
+        ov.torsoPitch = 1.44 + br * 0.02;
+        ov.pitch = -1.22;
+        ov.yaw = 0.06;
+        ov.roll = 0.18;
+        ov.tailHigh = -0.35;
+        ov.torsoScale = new THREE.Vector3(1.28, 1.06, 0.58);
+        ov.rightPawPos = new THREE.Vector3(-0.56, -0.78, 0.92);
+        ov.leftPawPos = new THREE.Vector3(0.56, -0.78, 0.92);
+        ov.rightElbowOffset = new THREE.Vector3(-0.18, -0.06, 0.02);
+        ov.leftElbowOffset = new THREE.Vector3(0.18, -0.06, 0.02);
+      }
+    }
+
+    // =========================================================================
+    // 0. EXHAUSTED RESTING (3 sleeping styles!)
+    // =========================================================================
+    if (behavior.mode === 'exhausted') {
+      applyNapStyle(v, 0.05);
       if (t % 85 === 25) {
-        props.spawnFxText('Zzz', '#cbd5e1', new THREE.Vector3(-0.18, 0.35, 0.25), 0.015, 48);
+        const zx = v === 0 ? -0.18 : (v === 1 ? 0.52 : 0.22);
+        props.spawnFxText('Zzz', '#cbd5e1', new THREE.Vector3(zx, 0.35, 0.25), 0.015, 48);
       }
       return ov;
     }
 
     // =========================================================================
-    // 1. FEEDING MODES (Torso leans down toward bowl -> Munch & Lick!)
+    // 1. FEEDING MODES (2 styles: focused bowl-lean vs excited tail-wag gobble!)
     // =========================================================================
     if (behavior.mode === 'feedKibble' || behavior.mode === 'feedCan') {
       const isCan = behavior.mode === 'feedCan';
@@ -467,17 +539,19 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       prop.scale.set(sc, sc, sc);
 
       if (t > 16 && t < behavior.duration - 35) {
-        const chew = Math.sin(t * 0.42);
+        const chew = Math.sin(t * (v === 1 ? 0.55 : 0.42));
         ov.bodyX = 0.40;
-        ov.bodyY = -0.14 + Math.max(0, chew) * 0.025;
+        ov.bodyY = -0.14 + Math.max(0, chew) * (v === 1 ? 0.05 : 0.025);
         ov.bodyZ = 0.10;
         ov.torsoYaw = 0.56;
-        ov.torsoPitch = 0.74 + chew * 0.08;
+        ov.torsoPitch = 0.74 + chew * (v === 1 ? 0.14 : 0.08);
+        ov.torsoRoll = v === 1 ? Math.sin(t * 0.28) * 0.08 : 0;
         ov.yaw = 0.14;
-        ov.pitch = 0.16 + chew * 0.14;
-        ov.squint = 0.75;
-        ov.blush = 0.38;
-        ov.tailSpeed = 0.14;
+        ov.pitch = 0.16 + chew * 0.16;
+        ov.squint = 0.78;
+        ov.blush = 0.40;
+        ov.tailSpeed = v === 1 ? 0.30 : 0.14;
+        ov.tailHigh = v === 1 ? 0.75 : 0.10;
         ov.hindTuck = 0.55;
         ov.rightPawPos = new THREE.Vector3(0.28, -0.76, 0.86);
         ov.leftPawPos = new THREE.Vector3(0.76, -0.76, 0.72);
@@ -512,22 +586,24 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 2. CHURU TREAT LICKING (Cat clasps Churu packet with BOTH paws & licks!)
+    // 2. CHURU TREAT LICKING (2 styles: upright two-paw clasp vs eager leaning sway!)
     // =========================================================================
     if (behavior.mode === 'feedChuru') {
       ov.isInteractivePropActive = true;
       const rawPos = getCursorWorldAtZ(ndcPointer, camera, 0.44);
-      const holdX = Math.max(-0.22, Math.min(0.58, rawPos.x * 0.45 + 0.18 * 0.55));
-      const holdY = Math.max(0.06, Math.min(0.46, rawPos.y * 0.35 + 0.30 * 0.65));
+      const sway = v === 1 ? Math.sin(t * 0.16) * 0.14 : 0;
+      const holdX = Math.max(-0.22, Math.min(0.58, rawPos.x * 0.45 + (0.18 + sway) * 0.55));
+      const holdY = Math.max(0.06, Math.min(0.46, rawPos.y * 0.35 + (v === 1 ? 0.22 : 0.30) * 0.65));
       props.churuGroup.position.set(holdX, holdY, 0.42);
-      props.churuGroup.rotation.set(0, 0, -0.35);
+      props.churuGroup.rotation.set(0, 0, -0.35 + sway * 0.8);
 
-      ov.bodyY = -0.06;
-      ov.torsoPitch = 0.20;
+      ov.bodyY = v === 1 ? -0.10 : -0.06;
+      ov.torsoPitch = v === 1 ? 0.42 : 0.20;
+      ov.torsoRoll = sway * 0.65;
       ov.hindTuck = 0.45;
 
       const cx = holdX - 0.18;
-      const cy = holdY + 0.04;
+      const cy = holdY + (v === 1 ? 0.08 : 0.04);
       const cz = 0.77;
       ov.rightPawPos = new THREE.Vector3(cx - 0.14, cy - 0.22, cz - 0.02);
       ov.leftPawPos = new THREE.Vector3(cx + 0.16, cy - 0.22, cz - 0.02);
@@ -535,11 +611,13 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       ov.leftElbowOffset = new THREE.Vector3(0.12, -0.08, 0.06);
 
       ov.yaw = Math.max(-0.45, Math.min(0.45, cx * 0.75));
-      ov.pitch = Math.max(-0.2, Math.min(0.45, (0.48 - holdY) * 0.65)) + Math.sin(t * 0.55) * 0.05;
+      ov.pitch = Math.max(-0.35, Math.min(0.45, (0.48 - holdY) * 0.65 - (v === 1 ? 0.18 : 0))) + Math.sin(t * 0.55) * 0.05;
+      ov.roll = sway * 1.1;
       ov.dilate = 1.48;
-      ov.blush = 0.42;
-      ov.squint = 0.68;
-      ov.tailSpeed = 0.16;
+      ov.blush = 0.44;
+      ov.squint = v === 1 ? 0.85 : 0.68;
+      ov.tailSpeed = v === 1 ? 0.28 : 0.16;
+      ov.tailHigh = v === 1 ? 0.65 : 0.15;
 
       if (behavior.churuCooldown > 0) behavior.churuCooldown--;
       rig.tonguePivot.visible = true;
@@ -665,60 +743,69 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 5. GROOM (Lick right paw up at mouth -> Wipe high across cheek & ear!)
+    // 5. GROOM (2 styles: right-paw cheek wash vs left-paw ear wash!)
     // =========================================================================
     if (behavior.mode === 'groom') {
       const cycle = t % 75;
-      ov.torsoYaw = -0.22;
+      const side = v === 1 ? 1 : -1; // -1 = right paw (viewer left), +1 = left paw (viewer right)
+      ov.torsoYaw = side * 0.22;
       ov.torsoPitch = 0.14;
       ov.blush = 0.32;
       if (cycle < 30) {
-        // Lick raised paw right in front of mouth
-        ov.yaw = -0.24;
+        ov.yaw = side * 0.24;
         ov.pitch = 0.30;
-        ov.roll = 0.18;
+        ov.roll = -side * 0.18;
         ov.squint = 0.72;
-        ov.rightPawPos = new THREE.Vector3(-0.24, 0.46, 0.64);
-        ov.rightElbowOffset = new THREE.Vector3(-0.18, -0.06, 0.12);
+        const paw = new THREE.Vector3(side * 0.24, 0.46, 0.64);
+        const elb = new THREE.Vector3(side * 0.18, -0.06, 0.12);
+        if (side < 0) { ov.rightPawPos = paw; ov.rightElbowOffset = elb; }
+        else { ov.leftPawPos = paw; ov.leftElbowOffset = elb; }
         rig.tonguePivot.visible = cycle % 14 < 7;
         rig.tonguePivot.rotation.x = 0.2 + Math.sin(cycle * 0.6) * 0.25;
         if (cycle === 8 || cycle === 20) {
           if (window.catSound.playLick) window.catSound.playLick();
         }
       } else {
-        // Sweep paw high over cheek & ear with head leaning into paw!
         rig.tonguePivot.visible = false;
         const a = ((cycle - 30) / 45) * Math.PI * 2;
-        ov.yaw = -0.32;
+        ov.yaw = side * 0.32;
         ov.pitch = 0.22 + Math.sin(a) * 0.08;
-        ov.roll = 0.32 + Math.cos(a) * 0.06;
+        ov.roll = -side * (0.32 + Math.cos(a) * 0.06);
         ov.squint = 1.0;
-        ov.rightPawPos = new THREE.Vector3(-0.34 + Math.cos(a) * 0.12, 0.72 + Math.sin(a) * 0.16, 0.62);
-        ov.rightElbowOffset = new THREE.Vector3(-0.22, 0.02, 0.10);
+        const paw = new THREE.Vector3(side * 0.34 + Math.cos(a) * 0.12, 0.72 + Math.sin(a) * 0.16, 0.62);
+        const elb = new THREE.Vector3(side * 0.22, 0.02, 0.10);
+        if (side < 0) { ov.rightPawPos = paw; ov.rightElbowOffset = elb; }
+        else { ov.leftPawPos = paw; ov.leftElbowOffset = elb; }
       }
       if (t >= behavior.duration) exitToWork();
       return ov;
     }
 
     // =========================================================================
-    // 6. KITTY STRETCH (Classic Yoga Bow: high rump & arched tail, low chest, far-extended paws!)
+    // 6. KITTY STRETCH (2 styles: left yoga bow vs right yoga bow!)
     // =========================================================================
     if (behavior.mode === 'stretch') {
       const p = t < 35 ? t / 35 : (t > 155 ? Math.max(0, (behavior.duration - t) / 35) : 1);
-      ov.bodyX = 0.56 * p;
+      const s = v === 1 ? -1 : 1; // +1 = stretch left (head left), -1 = stretch right (head right)
+      ov.bodyX = s * 0.56 * p;
       ov.bodyY = 0.06 * p;
       ov.bodyZ = -0.20 * p;
-      ov.torsoYaw = -1.25 * p;
+      ov.torsoYaw = -s * 1.25 * p;
       ov.torsoPitch = 1.46 * p;
       ov.pitch = -1.32 * p;
-      ov.yaw = 0.92 * p;
-      ov.roll = -0.08 * p;
+      ov.yaw = s * 0.92 * p;
+      ov.roll = -s * 0.08 * p;
       ov.squint = 0.92 * p;
       ov.tailHigh = 0.95 * p + (t > 45 && t < 145 ? Math.sin(t * 0.7) * 0.06 : 0);
       ov.tailBack = -1.35 * p;
       ov.hindTuck = 0.0;
-      ov.leftPawPos = new THREE.Vector3(-0.30 - 1.15 * p, -0.78, 0.78 - 0.38 * p);
-      ov.rightPawPos = new THREE.Vector3(-0.30 - 1.28 * p, -0.78, 0.78 - 0.66 * p);
+      if (s > 0) {
+        ov.leftPawPos = new THREE.Vector3(-0.30 - 1.15 * p, -0.78, 0.78 - 0.38 * p);
+        ov.rightPawPos = new THREE.Vector3(-0.30 - 1.28 * p, -0.78, 0.78 - 0.66 * p);
+      } else {
+        ov.rightPawPos = new THREE.Vector3(0.30 + 1.15 * p, -0.78, 0.78 - 0.38 * p);
+        ov.leftPawPos = new THREE.Vector3(0.30 + 1.28 * p, -0.78, 0.78 - 0.66 * p);
+      }
       ov.leftElbowOffset = new THREE.Vector3(0.0, -0.06, 0.04);
       ov.rightElbowOffset = new THREE.Vector3(0.0, -0.06, -0.04);
       rig.tonguePivot.visible = t > 35 && t < 120;
@@ -731,20 +818,23 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 7. CAT LOAF (Low chubby oval bread loaf with all 4 limbs tucked invisibly under!)
+    // 7. CAT LOAF (2 styles: front round toast vs 3/4 cozy angled pillow loaf!)
     // =========================================================================
     if (behavior.mode === 'loaf') {
       ov.bodyY = -0.24;
-      ov.torsoPitch = 0.48;
-      ov.pitch = -0.38;
-      ov.squint = 0.70;
-      ov.blush = 0.24;
+      ov.torsoPitch = v === 1 ? 0.65 : 0.48;
+      ov.torsoYaw = v === 1 ? -0.62 : 0;
+      ov.pitch = v === 1 ? -0.52 : -0.38;
+      ov.yaw = v === 1 ? 0.52 : 0;
+      ov.roll = v === 1 ? -0.10 : 0;
+      ov.squint = v === 1 ? 0.82 : 0.70;
+      ov.blush = 0.26;
       ov.tailSpeed = 0.02;
-      ov.tailHigh = -0.35;
+      ov.tailHigh = v === 1 ? -0.85 : -0.35;
       ov.hindTuck = 0.98;
-      ov.torsoScale = new THREE.Vector3(1.24, 0.74, 1.18);
-      ov.rightPawPos = new THREE.Vector3(-0.14, -0.66, 0.18);
-      ov.leftPawPos = new THREE.Vector3(0.14, -0.66, 0.18);
+      ov.torsoScale = v === 1 ? new THREE.Vector3(1.14, 0.92, 1.04) : new THREE.Vector3(1.24, 0.74, 1.18);
+      ov.rightPawPos = new THREE.Vector3(v === 1 ? -0.32 : -0.14, -0.68, 0.18);
+      ov.leftPawPos = new THREE.Vector3(v === 1 ? -0.04 : 0.14, -0.68, 0.26);
       ov.rightElbowOffset = new THREE.Vector3(0.10, -0.18, -0.14);
       ov.leftElbowOffset = new THREE.Vector3(-0.10, -0.18, -0.14);
       if (t >= behavior.duration) exitToWork();
@@ -752,31 +842,13 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 8. DESK NAP (Lateral horizontal belly-down sleep, head on left paws, tail curled right!)
+    // 8. DESK NAP (3 sleeping styles: left lateral / right lateral / pancake sploot!)
     // =========================================================================
     if (behavior.mode === 'nap') {
-      ov.bodyX = 0.52;
-      ov.bodyY = -0.14 + Math.sin(t * 0.04) * 0.012;
-      ov.bodyZ = -0.16;
-      ov.torsoYaw = -1.35;
-      ov.torsoPitch = 1.48 + Math.sin(t * 0.04) * 0.018;
-      ov.torsoRoll = 0.04;
-      ov.pitch = -1.35;
-      ov.yaw = 1.15;
-      ov.roll = -0.12;
-      ov.squint = 1.15;
-      ov.sleepEyes = true;
-      ov.blush = 0.42;
-      ov.tailSpeed = 0.015;
-      ov.tailHigh = -1.45;
-      ov.hindTuck = 0.90;
-      ov.torsoScale = new THREE.Vector3(0.96, 1.18, 0.78);
-      ov.leftPawPos = new THREE.Vector3(-1.12, -0.76, 0.50);
-      ov.rightPawPos = new THREE.Vector3(-1.38, -0.76, 0.22);
-      ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, 0.14);
-      ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, -0.08);
+      applyNapStyle(v, 0.04);
       if (t % 70 === 20) {
-        props.spawnFxText('Zzz', '#e2e8f0', new THREE.Vector3(-0.18, 0.35, 0.25), 0.016, 52);
+        const zx = v === 0 ? -0.18 : (v === 1 ? 0.52 : 0.22);
+        props.spawnFxText('Zzz', '#e2e8f0', new THREE.Vector3(zx, 0.35, 0.25), 0.016, 52);
       }
       if (t >= behavior.duration) exitToWork();
       return ov;
@@ -827,16 +899,31 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       const stride = Math.sin(t * 0.55);
       const dir = behavior.zoomDir;
       ov.bodyX = behavior.zoomX;
-      ov.bodyY = Math.abs(Math.sin(t * 0.42)) * 0.32 - 0.04;
-      ov.bodyZ = -0.18;
-      ov.torsoYaw = dir * 1.12;
-      ov.torsoPitch = 1.15 - Math.abs(stride) * 0.14;
-      ov.pitch = -1.02;
-      ov.yaw = -dir * 0.45;
-      ov.roll = -dir * 0.14;
-      ov.torsoScale = new THREE.Vector3(0.92, 1.16, 0.82);
-      ov.leftPawPos = new THREE.Vector3(dir * (0.92 + stride * 0.32), -0.58 + Math.max(0, stride) * 0.26, 0.42);
-      ov.rightPawPos = new THREE.Vector3(dir * (0.92 - stride * 0.32), -0.58 + Math.max(0, -stride) * 0.26, 0.12);
+      if (v === 1) {
+        // 款B: 袋鼠高跳拱背跑酷！
+        ov.bodyY = Math.abs(Math.sin(t * 0.32)) * 0.62 - 0.05;
+        ov.bodyZ = -0.12;
+        ov.torsoYaw = dir * 0.72;
+        ov.torsoPitch = 0.58 + Math.sin(t * 0.32) * 0.22;
+        ov.torsoRoll = -dir * 0.24;
+        ov.pitch = -0.45;
+        ov.yaw = -dir * 0.35;
+        ov.torsoScale = new THREE.Vector3(0.94, 1.12, 0.92);
+        ov.leftPawPos = new THREE.Vector3(dir * 0.55, -0.15 + Math.max(0, stride) * 0.35, 0.62);
+        ov.rightPawPos = new THREE.Vector3(dir * 0.25, -0.15 + Math.max(0, -stride) * 0.35, 0.62);
+      } else {
+        // 款A: 水平贴地飞奔冲刺！
+        ov.bodyY = Math.abs(Math.sin(t * 0.42)) * 0.32 - 0.04;
+        ov.bodyZ = -0.18;
+        ov.torsoYaw = dir * 1.12;
+        ov.torsoPitch = 1.15 - Math.abs(stride) * 0.14;
+        ov.pitch = -1.02;
+        ov.yaw = -dir * 0.45;
+        ov.roll = -dir * 0.14;
+        ov.torsoScale = new THREE.Vector3(0.92, 1.16, 0.82);
+        ov.leftPawPos = new THREE.Vector3(dir * (0.92 + stride * 0.32), -0.58 + Math.max(0, stride) * 0.26, 0.42);
+        ov.rightPawPos = new THREE.Vector3(dir * (0.92 - stride * 0.32), -0.58 + Math.max(0, -stride) * 0.26, 0.12);
+      }
 
       if (behavior.zoomBounces >= 3 && Math.abs(behavior.zoomX) < 0.15) {
         addStats({ mood: 15, energy: -10 });
@@ -859,27 +946,32 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
       if (!behavior.bugCaught) {
         if (t < 150) {
-          // Flutter around upper-left so 3/4 stalking silhouette faces moth cleanly!
-          const tx = -0.65 + Math.sin(behavior.bugAngle * 1.3) * 0.95;
+          const s = v === 1 ? -1 : 1; // +1 = stalk left, -1 = stalk right
+          const tx = -s * 0.65 + Math.sin(behavior.bugAngle * 1.3) * 0.85;
           const ty = 0.85 + Math.cos(behavior.bugAngle * 2.1) * 0.28;
           behavior.bugPos.x += (tx - behavior.bugPos.x) * 0.04;
           behavior.bugPos.y += (ty - behavior.bugPos.y) * 0.04;
           // 3/4 Flat predator crouch + butt-wiggle ekekek!
-          ov.bodyX = 0.42;
+          ov.bodyX = s * 0.42;
           ov.bodyY = -0.18;
           ov.bodyZ = -0.18;
-          ov.torsoYaw = -1.05;
+          ov.torsoYaw = -s * 1.05;
           ov.torsoPitch = 1.38;
           ov.torsoRoll = Math.sin(t * 0.55) * 0.14;
           ov.hindTuck = 0.65;
           ov.torsoScale = new THREE.Vector3(0.96, 1.14, 0.78);
-          ov.yaw = 0.72 + Math.max(-0.25, Math.min(0.25, (behavior.bugPos.x + 0.5) * 0.2));
+          ov.yaw = s * 0.72 + Math.max(-0.22, Math.min(0.22, (behavior.bugPos.x + s * 0.5) * 0.2));
           ov.pitch = -1.36 + Math.sin(t * 1.1) * 0.05;
           ov.dilate = 1.56;
           ov.tailSpeed = 0.28;
           ov.tailHigh = -1.20;
-          ov.leftPawPos = new THREE.Vector3(-0.92, -0.78, 0.48);
-          ov.rightPawPos = new THREE.Vector3(-1.18, -0.78, 0.16);
+          if (s > 0) {
+            ov.leftPawPos = new THREE.Vector3(-0.92, -0.78, 0.48);
+            ov.rightPawPos = new THREE.Vector3(-1.18, -0.78, 0.16);
+          } else {
+            ov.rightPawPos = new THREE.Vector3(0.92, -0.78, 0.48);
+            ov.leftPawPos = new THREE.Vector3(1.18, -0.78, 0.16);
+          }
         } else {
           // Leap upward within paw reach -> Pounce & catch!
           behavior.bugPos.lerp(new THREE.Vector3(0.18, 0.34, 0.72), 0.08);
@@ -946,10 +1038,18 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
         const p = (t - 20) / 52;
         const ease = p * p * (3 - 2 * p);
         ov.bodyY = 0.78 * Math.sin(p * Math.PI);
-        ov.catFlipX = ease * Math.PI * 2;
-        ov.torsoPitch = 0.35;
-        ov.torsoRoll = Math.sin(p * Math.PI) * 0.45;
-        ov.yaw = Math.sin(p * Math.PI) * 0.35;
+        if (v === 1) {
+          // 款B: 炫技空中侧手滚筒翻 360°！
+          ov.catFlipZ = ease * Math.PI * 2;
+          ov.bodyX = Math.sin(p * Math.PI) * 0.28;
+          ov.torsoPitch = 0.25;
+        } else {
+          // 款A: 经典团身前空翻 360°！
+          ov.catFlipX = ease * Math.PI * 2;
+          ov.torsoPitch = 0.35;
+          ov.torsoRoll = Math.sin(p * Math.PI) * 0.45;
+          ov.yaw = Math.sin(p * Math.PI) * 0.35;
+        }
         ov.hindTuck = 0.85;
         ov.tailHigh = 0.55;
         ov.dilate = 1.45;
