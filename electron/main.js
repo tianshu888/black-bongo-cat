@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, screen, Tray, Menu, nativeImage, dialog } = require('electron');
+const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -455,6 +456,49 @@ function openOnboardingWindow() {
   onboardingWindow.on('closed', () => { onboardingWindow = null; });
 }
 
+let ncFixTimer = null;
+let ncFixRunning = false;
+function suppressNonClientFrame(win) {
+  if (process.platform !== 'win32' || !win || win.isDestroyed()) return;
+  clearTimeout(ncFixTimer);
+  ncFixTimer = setTimeout(() => {
+    if (!win || win.isDestroyed() || ncFixRunning) return;
+    ncFixRunning = true;
+    try {
+      const buf = win.getNativeWindowHandle();
+      const hwnd = buf.length === 8 ? buf.readBigUInt64LE(0).toString() : String(buf.readUInt32LE(0));
+      const ps = `
+Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public class PetNcFix {
+  [DllImport("user32.dll")] public static extern int GetWindowLong(IntPtr h, int idx);
+  [DllImport("user32.dll")] public static extern int SetWindowLong(IntPtr h, int idx, int val);
+  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+  [DllImport("dwmapi.dll")] public static extern int DwmSetWindowAttribute(IntPtr hwnd, int attr, ref int val, int size);
+  public static void Apply(long ptr) {
+    IntPtr h = new IntPtr(ptr);
+    int st = (GetWindowLong(h, -16) & ~0x00CF0000) | unchecked((int)0x80000000);
+    SetWindowLong(h, -16, st);
+    int ex = GetWindowLong(h, -20) | 0x08000080;
+    SetWindowLong(h, -20, ex);
+    int ncrp = 1;
+    DwmSetWindowAttribute(h, 2, ref ncrp, 4);
+    SetWindowPos(h, IntPtr.Zero, 0, 0, 0, 0, 0x0037);
+  }
+}
+"@
+[PetNcFix]::Apply(${hwnd})
+`;
+      execFile('powershell', ['-NoProfile', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', ps], { windowsHide: true }, () => {
+        ncFixRunning = false;
+      });
+    } catch (_) {
+      ncFixRunning = false;
+    }
+  }, 60);
+}
+
 function createWindow() {
   loadSettings();
   const winW = Math.round(BASE_W * currentSettings.scale);
@@ -479,7 +523,9 @@ function createWindow() {
     transparent: true,
     thickFrame: false,
     focusable: false,
+    type: 'toolbar',
     backgroundColor: '#00000000',
+    backgroundMaterial: 'none',
     alwaysOnTop: currentSettings.alwaysOnTop,
     resizable: false,
     minimizable: false,
@@ -496,16 +542,20 @@ function createWindow() {
     }
   });
 
+  mainWindow.setMenu(null);
+  mainWindow.setMenuBarVisibility(false);
   if (currentSettings.alwaysOnTop) {
     mainWindow.setAlwaysOnTop(true, 'pop-up-menu');
   }
   mainWindow.setIgnoreMouseEvents(true, { forward: true });
   mainWindow.on('system-context-menu', (e) => e.preventDefault());
+  mainWindow.on('blur', () => suppressNonClientFrame(mainWindow));
   mainWindow.loadFile(path.join(__dirname, '../src/index.html'));
 
   mainWindow.once('ready-to-show', () => {
     console.log('[BongoCat] Window ready-to-show at:', mainWindow.getBounds(), 'on display:', def.display.bounds);
     mainWindow.showInactive();
+    suppressNonClientFrame(mainWindow);
   });
 
   mainWindow.webContents.on('did-finish-load', () => {
@@ -641,6 +691,7 @@ ipcMain.on('update-settings', (event, partial) => {
       mainWindow.webContents.send('window-resized', { width: newW, height: newH });
     }
     mainWindow.setAlwaysOnTop(Boolean(currentSettings.alwaysOnTop), 'pop-up-menu');
+    suppressNonClientFrame(mainWindow);
     mainWindow.webContents.send('settings-changed', currentSettings);
   }
   if (settingsWindow && !settingsWindow.isDestroyed()) {

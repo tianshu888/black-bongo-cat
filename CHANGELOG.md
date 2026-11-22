@@ -1,5 +1,11 @@
 # 更新记录 (Changelog)
 
+## v2.3.3 (2026-11-22)
+
+### 彻底根治 Windows 透明窗口顶部蓝条 & 键盘朝向校准
+- **彻底禁绝非客户区标题栏**（[main.js](electron/main.js#L459-L515)）：透明主窗口追加 `type: 'toolbar'`、`backgroundMaterial: 'none'`、`setMenu(null)`，并通过 Win32 API 强制将窗口样式从 `WS_OVERLAPPED` 切换为真 **`WS_POPUP (0x94000000)` + `DWMWA_NCRENDERING_POLICY = DWMNCRP_DISABLED`**（在 `ready-to-show`、`blur` 与缩放重绘后持续生效），根除 Windows DWM 在失焦或拖动时兜底绘出的顶部浅蓝渐变压条。
+- **键盘朝向小猫校准**（[props.js](src/props.js)、[app.js](src/app.js)）：`kbKeysPivot` 水平旋转 `180°` 使空格排朝向小猫爪子，并同步镜像校准左/右手落键、击键光环与键盘/头部倾斜方向。
+
 ## v2.3.2 (2026-11-21)
 
 ### 交互区分优化：按住右键看旁侧信息 + Alt+双击打开档案弹窗
