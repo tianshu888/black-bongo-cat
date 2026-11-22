@@ -426,30 +426,31 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     const t = behavior.timer;
 
     // =========================================================================
-    // 0. EXHAUSTED RESTING (True horizontal belly-down flop, chin resting low on paws!)
+    // 0. EXHAUSTED RESTING (Lateral horizontal belly-down sleep, head on left paws, tail right!)
     // =========================================================================
     if (behavior.mode === 'exhausted') {
-      ov.bodyX = -0.42;
-      ov.bodyY = -0.18 + Math.sin(t * 0.05) * 0.012;
-      ov.bodyZ = -0.32;
-      ov.torsoYaw = 0.88;
-      ov.torsoPitch = 1.44 + Math.sin(t * 0.05) * 0.02;
-      ov.torsoRoll = 0.06;
-      ov.pitch = -1.14;
-      ov.yaw = -0.52;
-      ov.roll = 0.24;
-      ov.squint = 0.94;
-      ov.blush = 0.30;
+      ov.bodyX = 0.52;
+      ov.bodyY = -0.14 + Math.sin(t * 0.05) * 0.012;
+      ov.bodyZ = -0.16;
+      ov.torsoYaw = -1.35;
+      ov.torsoPitch = 1.48 + Math.sin(t * 0.05) * 0.018;
+      ov.torsoRoll = 0.04;
+      ov.pitch = -1.35;
+      ov.yaw = 1.15;
+      ov.roll = -0.12;
+      ov.squint = 1.15;
+      ov.sleepEyes = true;
+      ov.blush = 0.36;
       ov.tailSpeed = 0.015;
-      ov.tailHigh = -1.12;
-      ov.hindTuck = 0.92;
-      ov.torsoScale = new THREE.Vector3(1.16, 1.08, 0.62);
-      ov.rightPawPos = new THREE.Vector3(0.68, -0.78, 0.84);
-      ov.leftPawPos = new THREE.Vector3(0.96, -0.78, 0.56);
-      ov.rightElbowOffset = new THREE.Vector3(-0.06, -0.04, 0.08);
-      ov.leftElbowOffset = new THREE.Vector3(0.08, -0.04, -0.06);
+      ov.tailHigh = -1.45;
+      ov.hindTuck = 0.90;
+      ov.torsoScale = new THREE.Vector3(0.96, 1.18, 0.78);
+      ov.leftPawPos = new THREE.Vector3(-1.12, -0.76, 0.50);
+      ov.rightPawPos = new THREE.Vector3(-1.38, -0.76, 0.22);
+      ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, 0.14);
+      ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, -0.08);
       if (t % 85 === 25) {
-        props.spawnFxText('Zzz', '#cbd5e1', new THREE.Vector3(0.55, 0.25, 0.35), 0.015, 48);
+        props.spawnFxText('Zzz', '#cbd5e1', new THREE.Vector3(-0.18, 0.35, 0.25), 0.015, 48);
       }
       return ov;
     }
@@ -742,30 +743,31 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
     }
 
     // =========================================================================
-    // 8. DESK NAP (True horizontal belly-down sleep, chin resting low on crossed paws!)
+    // 8. DESK NAP (Lateral horizontal belly-down sleep, head on left paws, tail curled right!)
     // =========================================================================
     if (behavior.mode === 'nap') {
-      ov.bodyX = -0.42;
-      ov.bodyY = -0.18 + Math.sin(t * 0.04) * 0.012;
-      ov.bodyZ = -0.32;
-      ov.torsoYaw = 0.88;
-      ov.torsoPitch = 1.44 + Math.sin(t * 0.04) * 0.022;
-      ov.torsoRoll = 0.06;
-      ov.pitch = -1.14;
-      ov.yaw = -0.52;
-      ov.roll = 0.24;
-      ov.squint = 0.94;
-      ov.blush = 0.34;
+      ov.bodyX = 0.52;
+      ov.bodyY = -0.14 + Math.sin(t * 0.04) * 0.012;
+      ov.bodyZ = -0.16;
+      ov.torsoYaw = -1.35;
+      ov.torsoPitch = 1.48 + Math.sin(t * 0.04) * 0.018;
+      ov.torsoRoll = 0.04;
+      ov.pitch = -1.35;
+      ov.yaw = 1.15;
+      ov.roll = -0.12;
+      ov.squint = 1.15;
+      ov.sleepEyes = true;
+      ov.blush = 0.42;
       ov.tailSpeed = 0.015;
-      ov.tailHigh = -1.12;
-      ov.hindTuck = 0.92;
-      ov.torsoScale = new THREE.Vector3(1.16, 1.08, 0.62);
-      ov.rightPawPos = new THREE.Vector3(0.68, -0.78, 0.84);
-      ov.leftPawPos = new THREE.Vector3(0.96, -0.78, 0.56);
-      ov.rightElbowOffset = new THREE.Vector3(-0.06, -0.04, 0.08);
-      ov.leftElbowOffset = new THREE.Vector3(0.08, -0.04, -0.06);
+      ov.tailHigh = -1.45;
+      ov.hindTuck = 0.90;
+      ov.torsoScale = new THREE.Vector3(0.96, 1.18, 0.78);
+      ov.leftPawPos = new THREE.Vector3(-1.12, -0.76, 0.50);
+      ov.rightPawPos = new THREE.Vector3(-1.38, -0.76, 0.22);
+      ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, 0.14);
+      ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, -0.08);
       if (t % 70 === 20) {
-        props.spawnFxText('Zzz', '#e2e8f0', new THREE.Vector3(0.55, 0.25, 0.35), 0.016, 52);
+        props.spawnFxText('Zzz', '#e2e8f0', new THREE.Vector3(-0.18, 0.35, 0.25), 0.016, 52);
       }
       if (t >= behavior.duration) exitToWork();
       return ov;

@@ -695,14 +695,14 @@ function update3DScene() {
   }
 
   const r = state.rigSpring;
-  r.targetYaw = Math.max(-1.05, Math.min(1.05, tYaw));
-  r.targetPitch = Math.max(-1.30, Math.min(1.15, tPitch));
+  r.targetYaw = Math.max(-1.35, Math.min(1.35, tYaw));
+  r.targetPitch = Math.max(-1.50, Math.min(1.20, tPitch));
   r.targetRoll = Math.max(-0.45, Math.min(0.45, tRoll));
   r.targetBodyX = Math.max(-1.8, Math.min(1.8, tBodyX));
   r.targetBodyY = Math.max(-0.55, Math.min(0.95, tBodyY));
   r.targetBodyZ = Math.max(-0.7, Math.min(0.7, tBodyZ));
-  r.targetTorsoPitch = Math.max(-0.45, Math.min(1.58, tTorsoPitch));
-  r.targetTorsoYaw = Math.max(-1.10, Math.min(1.10, tTorsoYaw));
+  r.targetTorsoPitch = Math.max(-0.45, Math.min(1.60, tTorsoPitch));
+  r.targetTorsoYaw = Math.max(-1.55, Math.min(1.55, tTorsoYaw));
   r.targetTorsoRoll = Math.max(-0.45, Math.min(0.45, tTorsoRoll));
 
   r.vYaw = (r.vYaw + (r.targetYaw - r.yaw) * 0.18) * 0.74;
@@ -811,6 +811,9 @@ function update3DScene() {
   rig.rightEye3D.upperLidPivot.rotation.x = upperRot;
   rig.leftEye3D.lowerLidPivot.rotation.x = lowerRot;
   rig.rightEye3D.lowerLidPivot.rotation.x = lowerRot;
+  if (rig.sleepEyesGroup) {
+    rig.sleepEyesGroup.visible = Boolean(behOv && behOv.sleepEyes) && state.squintAmount > 0.90;
+  }
 
   // D. Virtual Mouse & 3D IK Arms
   state.mouseOffset.lerp(state.mouseTargetOffset, 0.28);
@@ -958,6 +961,7 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
   const prevPupilScale = rig.leftEye3D.pupil.scale.clone();
   const prevBlush = rig.blushMat.opacity;
   const prevTongue = rig.tonguePivot.visible;
+  const prevSleepEyes = rig.sleepEyesGroup ? rig.sleepEyesGroup.visible : false;
   const prevTongueScale = rig.tonguePivot.scale.clone();
   const prevCamPos = camera.position.clone();
   const prevCamQuat = camera.quaternion.clone();
@@ -970,6 +974,7 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
     rig.torsoMesh.scale.set(1, 1, 1);
     rig.hindLegsGroup.scale.set(1, 1, 1);
     rig.hindLegsGroup.position.set(0, 0, 0);
+    if (rig.sleepEyesGroup) rig.sleepEyesGroup.visible = false;
     rig.leftEye3D.pupilPivot.rotation.set(0, 0, 0);
     rig.rightEye3D.pupilPivot.rotation.set(0, 0, 0);
 
@@ -1064,6 +1069,7 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
     rig.rightEye3D.pupil.scale.copy(prevPupilScale);
     rig.blushMat.opacity = prevBlush;
     rig.tonguePivot.visible = prevTongue;
+    if (rig.sleepEyesGroup) rig.sleepEyesGroup.visible = prevSleepEyes;
     rig.tonguePivot.scale.copy(prevTongueScale);
     camera.fov = prevFov;
     camera.updateProjectionMatrix();

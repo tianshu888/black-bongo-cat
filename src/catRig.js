@@ -310,6 +310,20 @@ export function createCatRig(scene) {
   headCenterGroup.add(leftEye3D.eyeSocket);
   headCenterGroup.add(rightEye3D.eyeSocket);
 
+  // Cute silver-white closed sleeping eye crescents (visible only during nap / exhausted!)
+  const sleepEyesGroup = new THREE.Group();
+  sleepEyesGroup.visible = false;
+  const sleepArcMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0 });
+  const sleepArcGeo = new THREE.TorusGeometry(0.10, 0.015, 8, 20, Math.PI);
+  for (const s of [-1, 1]) {
+    const arc = new THREE.Mesh(sleepArcGeo, sleepArcMat);
+    arc.position.set(s * 0.195, 0.03, 0.615);
+    arc.rotation.y = s * 0.14;
+    arc.rotation.z = Math.PI + s * -0.06;
+    sleepEyesGroup.add(arc);
+  }
+  headCenterGroup.add(sleepEyesGroup);
+
   // Tiny cute 3D Pink Cat Tongue (hidden at rest, peeks during Churu lick, groom, or yawn!)
   const tonguePivot = new THREE.Group();
   tonguePivot.position.set(0, -0.19, 0.52);
@@ -374,14 +388,15 @@ export function createCatRig(scene) {
     new THREE.MeshStandardMaterial({ color: 0xfacc15, metalness: 0.6, roughness: 0.25 })
   );
   bellSphere.position.set(0, 0.42, 0.56);
+  bellGrp.position.set(0, 0.52, 0.05);
   bellGrp.add(collarRing, bellSphere);
   bellGrp.visible = false;
-  catRoot.add(bellGrp);
+  torsoPivot.add(bellGrp);
   accessoryGroups.bell = bellGrp;
 
   // 2. Pastel Bowtie
   const bowGrp = new THREE.Group();
-  bowGrp.position.set(0, 0.48, 0.56);
+  bowGrp.position.set(0, 1.00, 0.61);
   const bowMat = new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.45 });
   const bowL = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.20, 12), bowMat);
   bowL.rotation.z = -Math.PI / 2;
@@ -392,7 +407,7 @@ export function createCatRig(scene) {
   const bowCenter = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 12), bowMat);
   bowGrp.add(bowL, bowR, bowCenter);
   bowGrp.visible = false;
-  catRoot.add(bowGrp);
+  torsoPivot.add(bowGrp);
   accessoryGroups.bowtie = bowGrp;
 
   // 3. Cute Gaming Headphones (on headCenterGroup so they tilt with head!)
@@ -596,6 +611,7 @@ export function createCatRig(scene) {
     rightEar,
     leftEye3D,
     rightEye3D,
+    sleepEyesGroup,
     tonguePivot,
     blushMat,
     rightArm3D,
