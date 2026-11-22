@@ -360,7 +360,7 @@ function resetPetPosition() {
   const def = getDefaultWindowPos(winW, winH);
   currentSettings.windowPos = { x: def.x, y: def.y };
   saveSettings();
-  mainWindow.setPosition(def.x, def.y);
+  mainWindow.setBounds({ x: def.x, y: def.y, width: winW, height: winH });
 }
 
 function openSettingsWindow(initialTab = 'shop') {
@@ -533,7 +533,6 @@ function createWindow() {
   mainWindow.on('system-context-menu', (e) => e.preventDefault());
   mainWindow.on('blur', () => suppressNonClientFrame(mainWindow));
   mainWindow.on('show', () => suppressNonClientFrame(mainWindow));
-  mainWindow.on('move', () => suppressNonClientFrame(mainWindow));
   mainWindow.loadFile(path.join(__dirname, '../src/index.html'));
 
   mainWindow.once('ready-to-show', () => {
@@ -560,14 +559,16 @@ ipcMain.on('set-ignore-mouse', (event, ignore) => {
   mainWindow.setIgnoreMouseEvents(Boolean(ignore), { forward: true });
 });
 
+let savePosTimer = null;
 ipcMain.on('move-window', (event, { dx, dy }) => {
   if (!mainWindow || mainWindow.isDestroyed() || currentSettings.lockPosition) return;
-  const [x, y] = mainWindow.getPosition();
-  const nx = Math.round(x + dx);
-  const ny = Math.round(y + dy);
-  mainWindow.setPosition(nx, ny);
+  const b = mainWindow.getBounds();
+  const nx = Math.round(b.x + dx);
+  const ny = Math.round(b.y + dy);
+  mainWindow.setBounds({ x: nx, y: ny, width: b.width, height: b.height });
   currentSettings.windowPos = { x: nx, y: ny };
-  saveSettings();
+  clearTimeout(savePosTimer);
+  savePosTimer = setTimeout(saveSettings, 300);
 });
 
 ipcMain.handle('get-settings', () => currentSettings);

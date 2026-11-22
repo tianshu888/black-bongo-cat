@@ -19,8 +19,7 @@ function ensureWin32Api() {
       GetWindowLongW: user32.func('uint32 __stdcall GetWindowLongW(uintptr hWnd, int32 nIndex)'),
       SetWindowLongW: user32.func('uint32 __stdcall SetWindowLongW(uintptr hWnd, int32 nIndex, uint32 dwNewLong)'),
       SetWindowPos: user32.func('bool __stdcall SetWindowPos(uintptr hWnd, uintptr after, int32 x, int32 y, int32 cx, int32 cy, uint32 flags)'),
-      DwmSetWindowAttribute: dwmapi.func('int32 __stdcall DwmSetWindowAttribute(uintptr hwnd, uint32 attr, _In_ uint32 *val, uint32 size)'),
-      DwmExtendFrameIntoClientArea: dwmapi.func('int32 __stdcall DwmExtendFrameIntoClientArea(uintptr hwnd, _In_ int32 *margins)')
+      DwmSetWindowAttribute: dwmapi.func('int32 __stdcall DwmSetWindowAttribute(uintptr hwnd, uint32 attr, _In_ uint32 *val, uint32 size)')
     };
   } catch (err) {
     console.warn('[BongoCat] win32Frameless init skipped:', err.message);
@@ -55,7 +54,6 @@ function stripStylesAndDwm(api, hwnd, forceFrameChanged = false) {
   api.DwmSetWindowAttribute(hwnd, 2, [1], 4);          // DWMWA_NCRENDERING_POLICY = DWMNCRP_DISABLED
   api.DwmSetWindowAttribute(hwnd, 33, [1], 4);         // DWMWA_WINDOW_CORNER_PREFERENCE = DWMWCP_DONOTROUND (Win11)
   api.DwmSetWindowAttribute(hwnd, 34, [0xFFFFFFFE], 4); // DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE (Win11)
-  api.DwmExtendFrameIntoClientArea(hwnd, [0, 0, 0, 0]);
 
   if (styleChanged || forceFrameChanged) {
     api.SetWindowPos(hwnd, 0, 0, 0, 0, 0, 0x0037);     // SWP_NOSIZE|NOMOVE|NOZORDER|NOACTIVATE|FRAMECHANGED

@@ -495,6 +495,7 @@ window.addEventListener('mousemove', (e) => {
   if (state.isDraggingWindow && window.bongoAPI) {
     const dx = e.screenX - state.dragLastScreen.x;
     const dy = e.screenY - state.dragLastScreen.y;
+    if (dx === 0 && dy === 0) return;
     altDragDist += Math.hypot(dx, dy);
     state.dragLastScreen = { x: e.screenX, y: e.screenY };
     window.bongoAPI.moveWindow(dx, dy);
