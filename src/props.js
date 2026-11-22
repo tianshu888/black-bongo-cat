@@ -195,6 +195,15 @@ export function createProps(scene) {
     return mat;
   }
 
+  let currentKbTheme = 'classic';
+  function ensureKeyActiveMats(entry) {
+    if (entry.activeMats && entry.activeTheme === currentKbTheme) return entry.activeMats;
+    const topActive = getKbKeyTopMaterial(entry.label, entry.isOrange, true, entry.wLen, entry.dLen, currentKbTheme);
+    entry.activeMats = [activeKeyMat, activeKeyMat, topActive, activeKeyMat, activeKeyMat, activeKeyMat];
+    entry.activeTheme = currentKbTheme;
+    return entry.activeMats;
+  }
+
   function build3DKeyboard() {
     const innerW = kbW - 0.12;
     const innerD = kbD - 0.10;
@@ -218,16 +227,14 @@ export function createProps(scene) {
         const isOrange = Boolean(k.accent);
         const sideMat = isOrange ? orangeKeyMat : whiteKeyMat;
         const topBase = getKbKeyTopMaterial(k.label, isOrange, false, w, d, 'classic');
-        const topActive = getKbKeyTopMaterial(k.label, isOrange, true, w, d, 'classic');
 
         const baseMats = [sideMat, sideMat, topBase, sideMat, sideMat, sideMat];
-        const activeMats = [activeKeyMat, activeKeyMat, topActive, activeKeyMat, activeKeyMat, activeKeyMat];
         const mesh = new THREE.Mesh(geo, baseMats);
         mesh.position.set(x, 0.036, z);
         kbKeysPivot.add(mesh);
 
         const entry = {
-          ...k, wLen: w, dLen: d, isOrange, mesh, baseMats, activeMats,
+          ...k, wLen: w, dLen: d, isOrange, mesh, baseMats, activeMats: null, activeTheme: null,
           localPos: new THREE.Vector3(x, 0.072, z),
           hand: x < 0.05 ? 'left' : 'right',
           row: r
@@ -240,7 +247,8 @@ export function createProps(scene) {
   build3DKeyboard();
 
   function applyKeyboardTheme(themeName) {
-    const th = KB_THEMES[themeName] || KB_THEMES.classic;
+    currentKbTheme = themeName || 'classic';
+    const th = KB_THEMES[currentKbTheme] || KB_THEMES.classic;
     kbChassisMat.color.setHex(th.chassis);
     whiteKeyMat.color.setHex(th.keySide);
     orangeKeyMat.color.setHex(th.accSide);
@@ -248,8 +256,9 @@ export function createProps(scene) {
     activeKeyMat.emissive.setHex(th.actSide);
 
     for (const k of allKeys3D) {
-      k.baseMats[2] = getKbKeyTopMaterial(k.label, k.isOrange, false, k.wLen, k.dLen, themeName);
-      k.activeMats[2] = getKbKeyTopMaterial(k.label, k.isOrange, true, k.wLen, k.dLen, themeName);
+      k.baseMats[2] = getKbKeyTopMaterial(k.label, k.isOrange, false, k.wLen, k.dLen, currentKbTheme);
+      k.activeMats = null;
+      k.activeTheme = null;
     }
   }
 
@@ -530,7 +539,7 @@ export function createProps(scene) {
     }
     for (const k of allKeys3D) {
       const isPressed = activeKeys.has(k.id);
-      k.mesh.material = isPressed ? k.activeMats : k.baseMats;
+      k.mesh.material = isPressed ? ensureKeyActiveMats(k) : k.baseMats;
       k.mesh.position.y = isPressed ? -0.004 : 0.036;
     }
 

@@ -7,7 +7,7 @@
   "scripts": {
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "build": "electron-builder --win portable"
+    "build": "electron-builder --win"
   },
   "build": {
     "appId": "com.bongocat.desktop3d",
@@ -17,17 +17,31 @@
     "directories": {
       "output": "dist"
     },
+    "afterPack": "scripts/afterPack.cjs",
     "files": [
       "electron/**/*",
       "src/**/*",
       "node_modules/**/*",
       "package.json",
+      "!node_modules/three/examples/**/*",
+      "!node_modules/three/src/**/*",
+      "!node_modules/three/build/three.tsl.js",
+      "!node_modules/three/build/three.webgpu.js",
+      "!node_modules/three/build/three.webgpu.nodes.js",
+      "!node_modules/three/build/three.cjs",
+      "!node_modules/uiohook-napi/prebuilds/darwin-*/**/*",
+      "!node_modules/uiohook-napi/prebuilds/linux-*/**/*",
+      "!node_modules/uiohook-napi/prebuilds/win32-arm64/**/*",
+      "!node_modules/koffi/doc/**/*",
+      "!node_modules/koffi/lib/**/*",
+      "!node_modules/koffi/vendor/**/*",
       "!debug_capture.png",
       "!启动小黑猫.bat"
     ],
     "asarUnpack": [
       "**/node_modules/uiohook-napi/**",
-      "**/node_modules/koffi/**"
+      "**/node_modules/koffi/**",
+      "**/node_modules/@koromix/**"
     ],
     "win": {
       "target": [
@@ -36,9 +50,23 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
         }
       ],
       "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "小黑猫桌宠-极速安装版.exe"
     },
     "portable": {
       "artifactName": "小黑猫桌宠.exe"

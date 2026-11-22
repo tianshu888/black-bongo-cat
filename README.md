@@ -52,6 +52,6 @@ npm install
 # 本地开发启动（若系统存在冲突 ELECTRON* 环境变量，建议运行 启动小黑猫.bat）
 npm start
 
-# 打包为单文件便携版 Windows exe (输出至 dist/小黑猫桌宠.exe)
+# 打包为极速安装版与单文件便携版 (输出至 dist/小黑猫桌宠-极速安装版.exe 与 dist/小黑猫桌宠.exe)
 npm run build
 ```

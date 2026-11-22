@@ -2,8 +2,12 @@
 
 ## v2.4.1 (2026-11-22)
 
-### 跨 Win10 / Win11 兼容与无边框彻底根治
-- **进程内同步 Win32 消息拦截取代 PowerShell 子进程**（[win32Frameless.js](electron/win32Frameless.js)、[main.js](electron/main.js)）：引入免编译 `koffi` FFI，在主窗口首帧显示前直接同步将样式锁定为 `WS_POPUP (0x80000000)`、关闭 `DWMWA_NCRENDERING_POLICY` / Win11 边框与圆角，并子类化 `GWLP_WNDPROC` 同步拦截 `WM_NCCALCSIZE`、`WM_NCPAINT`、`WM_NCACTIVATE` 与 `WM_STYLECHANGED`，彻底解决在其他 Win10/Win11 电脑因 `powershell` 被杀毒拦截或启动延迟而偶发出现顶部蓝白窗框的问题。
+### 跨 Win10 / Win11 兼容、无边框根治与启动提速
+- **启动速度大幅优化 & 极速安装版**（[package.json](package.json)、[afterPack.cjs](scripts/afterPack.cjs)、[props.js](src/props.js)、[main.js](electron/main.js)）：
+  - 剔除 53 个非使用语言的 Chromium `locales/*.pak`、`LICENSES.chromium.html`、`three/examples`、`three/src`、跨平台冗余原生二进制，打包体积大幅减重（单文件压缩体积降至 `73.96 MB`）；
+  - 3D 键盘按键高亮贴图改为按需懒生成（启动少绘制 61 张 2D Canvas 与 WebGL 上传），并将 `uiohook-napi` 全局钩子加载延后至窗口创建后执行；
+  - 新增一键极速安装版 **`dist\小黑猫桌宠-极速安装版.exe`**（`80.52 MB`，装后无每次临时目录解压等待，实测冷启动仅 **`~1.5 秒`**；绿色目录 `dist\win-unpacked\小黑猫桌宠.exe` 同为 **`~1.5 秒`** 秒开）。
+- **进程内同步 Win32 消息拦截取代 PowerShell 子进程**（[win32Frameless.js](electron/win32Frameless.js)、[main.js](electron/main.js)）：引入免编译 `koffi` FFI（零回调直调 `SetWindowLongW` / `DwmSetWindowAttribute` 配合 Electron 原生 `hookWindowMessage`），在主窗口首帧显示前同步锁定 `WS_POPUP (0x80000000)` 并禁用 DWM 非客户区绘制与 Win11 边框，彻底消除在其他 Win10/Win11 电脑上偶发出现的顶部蓝白窗框。
 - **修复其他 Win11 电脑便携版档案窗原样吐出 CSS / 半透异常**（[main.js](electron/main.js)、[settings.html](src/settings.html)、[settings.css](src/settings.css)、[onboarding.html](src/onboarding.html)、[onboarding.css](src/onboarding.css)）：
   - 在全部窗口的 `webPreferences` 中设置 `sandbox: false` 并追加 `--disable-gpu-sandbox`、关闭 `CalculateNativeWinOcclusion`，避免便携版在部分 Win11 系统临时解压目录（如 8.3 短路径 / AppContainer 权限限制）下二次渲染进程读取资源受阻；
   - 将内联 `<style>` 外置为独立样式表 `settings.css` / `onboarding.css`（带防泄漏兜底规则），并为弹窗禁用 `backgroundMaterial: 'none'` 与等待 `ready-to-show` 后再显示。

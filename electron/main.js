@@ -165,14 +165,7 @@ function saveGameState() {
   }
 }
 
-// Try loading uiohook-napi for global keyboard & mouse hook
-try {
-  const hookMod = require('uiohook-napi');
-  uIOhook = hookMod.uIOhook;
-  console.log('[BongoCat] uiohook-napi loaded successfully');
-} catch (err) {
-  console.warn('[BongoCat] uiohook-napi load warning (will fallback to screen cursor polling & local keys):', err.message);
-}
+// Load uiohook-napi lazily inside setupGlobalHooks so initial window paint starts immediately
 
 // Map uiohook keycodes to visual key labels and virtual keyboard key IDs
 const KEYCODE_MAP = {
@@ -733,7 +726,15 @@ function setupGlobalHooks() {
     sendMousePos(pt.x, pt.y);
   }, 16);
 
-  if (!uIOhook) return;
+  if (!uIOhook) {
+    try {
+      const hookMod = require('uiohook-napi');
+      uIOhook = hookMod.uIOhook;
+    } catch (err) {
+      console.warn('[BongoCat] uiohook-napi load warning (fallback to polling):', err.message);
+      return;
+    }
+  }
 
   uIOhook.on('mousemove', (e) => {
     sendMousePos(e.x, e.y);
@@ -806,11 +807,13 @@ function setupGlobalHooks() {
 if (gotLock) {
   app.whenReady().then(() => {
     createWindow();
-    createTray();
-    setupGlobalHooks();
-    if (!currentGameState.onboarded) {
-      setTimeout(() => openOnboardingWindow(), 450);
-    }
+    setImmediate(() => {
+      createTray();
+      setupGlobalHooks();
+      if (!currentGameState.onboarded) {
+        setTimeout(() => openOnboardingWindow(), 350);
+      }
+    });
   });
 }
 
