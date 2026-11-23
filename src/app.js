@@ -19,7 +19,7 @@ const userSettings = {
   scale: 1.0,
   keyboardTheme: 'classic',
   mouseColor: 'white',
-  catCoat: 'black',
+  catCoat: 'smoke',
   eyeColor: 'lime',
   equippedAccessory: 'none',
   showFloatingKeys: true,

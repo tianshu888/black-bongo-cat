@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 
 export const CAT_COATS = {
-  black:  { base: 0x09090c, lit: 0x17171d, bodyRim: 0x64748b, limbRim: 0xe2e8f0, whisker: 0x94a3b8 },
-  blue:   { base: 0x334155, lit: 0x475569, bodyRim: 0x94a3b8, limbRim: 0xe2e8f0, whisker: 0xcbd5e1 },
-  cream:  { base: 0xe2e8f0, lit: 0xf8fafc, bodyRim: 0x94a3b8, limbRim: 0x94a3b8, whisker: 0x64748b },
-  orange: { base: 0xc2410c, lit: 0xea580c, bodyRim: 0xfdba74, limbRim: 0xfed7aa, whisker: 0xfef3c7 }
+  smoke:  { base: 0x20232a, lit: 0x424754, bodyRim: 0xd8dee9, limbRim: 0xbec7d6, whisker: 0xf1f5f9, bodyRimStrength: 0.36, nose: 0x1b1d23, isMaineCoon: true },
+  black:  { base: 0x09090c, lit: 0x17171d, bodyRim: 0x64748b, limbRim: 0xe2e8f0, whisker: 0x94a3b8, bodyRimStrength: 0.03, nose: 0xf9a8d4, isMaineCoon: false },
+  blue:   { base: 0x334155, lit: 0x475569, bodyRim: 0x94a3b8, limbRim: 0xe2e8f0, whisker: 0xcbd5e1, bodyRimStrength: 0.08, nose: 0xf9a8d4, isMaineCoon: false },
+  cream:  { base: 0xe2e8f0, lit: 0xf8fafc, bodyRim: 0x94a3b8, limbRim: 0x94a3b8, whisker: 0x64748b, bodyRimStrength: 0.06, nose: 0xf9a8d4, isMaineCoon: false },
+  orange: { base: 0xc2410c, lit: 0xea580c, bodyRim: 0xfdba74, limbRim: 0xfed7aa, whisker: 0xfef3c7, bodyRimStrength: 0.06, nose: 0xf9a8d4, isMaineCoon: false }
 };
 
 export const EYE_COLORS = {
@@ -33,18 +34,21 @@ function createVelvetBlackMaterial({
       uRimStrength: { value: rimStrength },
       uRimStart: { value: rimStart },
       uRimEnd: { value: rimEnd },
-      uFadeUpperRim: { value: fadeUpperRim ? 1.0 : 0.0 }
+      uFadeUpperRim: { value: fadeUpperRim ? 1.0 : 0.0 },
+      uSmokeGradient: { value: 0.0 }
     },
     vertexShader: `
       varying vec3 vNormalView;
       varying vec3 vViewDir;
       varying vec3 vWorldNormal;
+      varying vec3 vLocalPos;
       varying vec2 vUv;
       void main() {
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         vNormalView = normalize(normalMatrix * normal);
         vViewDir = normalize(-mvPosition.xyz);
         vWorldNormal = normalize(mat3(modelMatrix) * normal);
+        vLocalPos = position;
         vUv = uv;
         gl_Position = projectionMatrix * mvPosition;
       }
@@ -58,9 +62,11 @@ function createVelvetBlackMaterial({
       uniform float uRimStart;
       uniform float uRimEnd;
       uniform float uFadeUpperRim;
+      uniform float uSmokeGradient;
       varying vec3 vNormalView;
       varying vec3 vViewDir;
       varying vec3 vWorldNormal;
+      varying vec3 vLocalPos;
       varying vec2 vUv;
 
       void main() {
@@ -71,6 +77,16 @@ function createVelvetBlackMaterial({
         float ndl = dot(WN, uLightDir) * 0.5 + 0.5;
         float shade = smoothstep(0.24, 0.88, ndl);
         vec3 col = mix(uBaseColor, uLitColor, shade);
+
+        // Procedural Black-Smoke Maine Coon silver-ash chest/flank/belly undercoat gradient
+        if (uSmokeGradient > 0.5) {
+          float upperRuff = smoothstep(0.05, 0.55, vLocalPos.y) * smoothstep(-0.18, 0.44, vLocalPos.z);
+          float frontChest = smoothstep(-0.08, 0.52, vLocalPos.z) * smoothstep(-0.68, 0.48, vLocalPos.y);
+          float flankSilver = smoothstep(0.32, 0.82, abs(vLocalPos.x)) * smoothstep(0.55, -0.45, vLocalPos.y);
+          float silverMix = clamp(upperRuff * 0.42 + frontChest * 0.68 + flankSilver * 0.52, 0.0, 0.90);
+          vec3 silverAsh = mix(vec3(0.56, 0.60, 0.66), vec3(0.86, 0.88, 0.92), shade);
+          col = mix(col, silverAsh, silverMix);
+        }
 
         float ndv = clamp(dot(N, V), 0.0, 1.0);
         float rim = smoothstep(uRimStart, uRimEnd, 1.0 - ndv);
@@ -86,6 +102,11 @@ function createVelvetBlackMaterial({
 export function createCatRig(scene) {
   const bodyFurMat = createVelvetBlackMaterial({
     rimStrength: 0.03, rimStart: 0.80, rimEnd: 0.98,
+    baseHex: 0x09090c, litHex: 0x17171d, rimHex: 0x64748b
+  });
+
+  const headFurMat = createVelvetBlackMaterial({
+    rimStrength: 0.03, rimStart: 0.78, rimEnd: 0.97,
     baseHex: 0x09090c, litHex: 0x17171d, rimHex: 0x64748b
   });
 
@@ -237,6 +258,35 @@ export function createCatRig(scene) {
   tailTip.position.copy(tailLocalPts[3]);
   tailPivot.add(tailTip);
 
+  // Maine Coon Black-Smoke Exclusive Smooth Sculpted Fur Details (silky chest mane, feathered tail, lynx ear tips)
+  const maineManeMat = createVelvetBlackMaterial({
+    rimStrength: 0.34, rimStart: 0.58, rimEnd: 0.94,
+    baseHex: 0x5c6270, litHex: 0xb6bdc9, rimHex: 0xf1f5f9
+  });
+  const maineEarTipMat = createVelvetBlackMaterial({
+    rimStrength: 0.32, rimStart: 0.58, rimEnd: 0.92,
+    baseHex: 0x20232a, litHex: 0x454a56, rimHex: 0xd8dee9
+  });
+
+  // 1. Torso group reserved for Maine Coon (chest/flank silver smoke rendered seamlessly by uSmokeGradient shader)
+  const maineTorsoGroup = new THREE.Group();
+  maineTorsoGroup.visible = false;
+  torsoPivot.add(maineTorsoGroup);
+
+  // 2. Bushy Two-Tone Smoky-Silver Tail Plume (tailPivot child)
+  const maineTailPlume = new THREE.Group();
+  maineTailPlume.visible = false;
+  const plumeMat = createVelvetBlackMaterial({
+    rimStrength: 0.44, rimStart: 0.52, rimEnd: 0.92,
+    baseHex: 0x3b404c, litHex: 0xa2a9b6, rimHex: 0xf1f5f9
+  });
+  const plumeGeo = new THREE.TubeGeometry(tailCurve, 28, 0.195, 16, false);
+  const plumeMesh = new THREE.Mesh(plumeGeo, plumeMat);
+  const plumeTip = new THREE.Mesh(new THREE.SphereGeometry(0.198, 18, 14), plumeMat);
+  plumeTip.position.copy(tailLocalPts[3]);
+  maineTailPlume.add(plumeMesh, plumeTip);
+  tailPivot.add(maineTailPlume);
+
   // Head pivot (child of torsoPivot so leaning torso carries neck & head naturally)
   const headPivot = new THREE.Group();
   headPivot.position.set(0, 1.06, 0.07);
@@ -264,7 +314,7 @@ export function createCatRig(scene) {
     headBasePositions[i * 3 + 2] = z;
   }
   headGeo.computeVertexNormals();
-  const headMesh = new THREE.Mesh(headGeo, bodyFurMat);
+  const headMesh = new THREE.Mesh(headGeo, headFurMat);
   headCenterGroup.add(headMesh);
 
   // Short rounded kitten ears
@@ -279,12 +329,12 @@ export function createCatRig(scene) {
   const earGeo = new THREE.LatheGeometry(earProfile, 32);
   earGeo.scale(1.02, 0.96, 0.78);
 
-  const leftEar = new THREE.Mesh(earGeo, bodyFurMat);
+  const leftEar = new THREE.Mesh(earGeo, headFurMat);
   leftEar.position.set(-0.33, 0.37, -0.02);
   leftEar.rotation.set(0.08, 0.12, 0.24);
   headCenterGroup.add(leftEar);
 
-  const rightEar = new THREE.Mesh(earGeo, bodyFurMat);
+  const rightEar = new THREE.Mesh(earGeo, headFurMat);
   rightEar.position.set(0.33, 0.37, -0.02);
   rightEar.rotation.set(0.08, -0.12, -0.24);
   headCenterGroup.add(rightEar);
@@ -359,12 +409,38 @@ export function createCatRig(scene) {
   // Tiny soft pink cat nose
   const noseGeo = new THREE.SphereGeometry(0.036, 14, 12);
   noseGeo.scale(1.25, 0.82, 0.75);
-  const noseMesh = new THREE.Mesh(
-    noseGeo,
-    new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.45 })
-  );
+  const noseMat = new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.45 });
+  const noseMesh = new THREE.Mesh(noseGeo, noseMat);
   noseMesh.position.set(0, -0.105, 0.595);
   headCenterGroup.add(noseMesh);
+
+  // 3. Maine Coon Head Details: Sleek Lynx Ear Tips, Tucked Inner Ear Fur & Subtle Silver Muzzle
+  const maineHeadGroup = new THREE.Group();
+  maineHeadGroup.visible = false;
+  const lynxTipGeo = new THREE.ConeGeometry(0.068, 0.20, 12);
+  const innerEarFluffGeo = new THREE.ConeGeometry(0.092, 0.21, 12);
+  const muzzlePuffGeo = new THREE.SphereGeometry(0.082, 16, 12);
+  for (const s of [-1, 1]) {
+    // Sleek lynx ear tip tuft seated cleanly atop ear apex
+    const tip = new THREE.Mesh(lynxTipGeo, maineEarTipMat);
+    tip.position.set(s * 0.425, 0.73, -0.015);
+    tip.rotation.set(0.08, 0, -s * 0.24);
+    maineHeadGroup.add(tip);
+
+    // Soft silvery-white inner ear furnishing tucked cleanly inside ear
+    const inner = new THREE.Mesh(innerEarFluffGeo, maineManeMat);
+    inner.position.set(s * 0.36, 0.56, 0.05);
+    inner.rotation.set(0.14, -s * 0.14, -s * 0.24);
+    inner.scale.set(0.84, 0.94, 0.22);
+    maineHeadGroup.add(inner);
+
+    // Subtle pale silver whisker muzzle puffs
+    const muzz = new THREE.Mesh(muzzlePuffGeo, maineManeMat);
+    muzz.position.set(s * 0.098, -0.17, 0.558);
+    muzz.scale.set(1.18, 0.68, 0.52);
+    maineHeadGroup.add(muzz);
+  }
+  headCenterGroup.add(maineHeadGroup);
 
   // Tiny cute 3D Pink Cat Tongue (hidden at rest, peeks during Churu lick, groom, or yawn!)
   const tonguePivot = new THREE.Group();
@@ -619,17 +695,28 @@ export function createCatRig(scene) {
 
   function applyCoatAndEyes(coatName, eyeName) {
     const coat = CAT_COATS[coatName] || CAT_COATS.black;
-    [bodyFurMat, eyelidMat].forEach((m) => {
+    const isMC = Boolean(coat.isMaineCoon);
+    [bodyFurMat, headFurMat, eyelidMat].forEach((m) => {
       m.uniforms.uBaseColor.value.setHex(coat.base);
       m.uniforms.uLitColor.value.setHex(coat.lit);
       m.uniforms.uRimColor.value.setHex(coat.bodyRim);
+      m.uniforms.uRimStrength.value = coat.bodyRimStrength ?? 0.03;
     });
+    bodyFurMat.uniforms.uSmokeGradient.value = isMC ? 1.0 : 0.0;
+    headFurMat.uniforms.uSmokeGradient.value = 0.0;
     [limbFurMat, armFurMat].forEach((m) => {
       m.uniforms.uBaseColor.value.setHex(coat.base);
       m.uniforms.uLitColor.value.setHex(coat.lit);
       m.uniforms.uRimColor.value.setHex(coat.limbRim);
     });
     whiskerMat.color.setHex(coat.whisker);
+    noseMat.color.setHex(coat.nose ?? 0xf9a8d4);
+
+    maineTorsoGroup.visible = isMC;
+    maineTailPlume.visible = isMC;
+    maineHeadGroup.visible = isMC;
+    leftEar.scale.set(isMC ? 1.06 : 1, isMC ? 1.32 : 1, 1);
+    rightEar.scale.set(isMC ? 1.06 : 1, isMC ? 1.32 : 1, 1);
 
     const eye = EYE_COLORS[eyeName] || EYE_COLORS.lime;
     irisMat.uniforms.uDarkLime.value.setHex(eye.dark);

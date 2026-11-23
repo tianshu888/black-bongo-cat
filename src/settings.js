@@ -229,8 +229,10 @@ function renderSettingsUI(cfg) {
   };
   markGroup('kb-themes', localCfg.keyboardTheme || 'classic');
   markGroup('mouse-colors', localCfg.mouseColor || 'white');
-  markGroup('cat-coats', localCfg.catCoat || 'black');
+  markGroup('cat-skins', localCfg.catSkin || 'smoke');
+  markGroup('cat-coats', localCfg.catCoat || 'smoke');
   markGroup('eye-colors', localCfg.eyeColor || 'lime');
+  document.getElementById('classic-cat-appearance').hidden = false;
 
   document.querySelectorAll('.switch[data-key]').forEach((sw) => {
     sw.classList.toggle('on', Boolean(localCfg[sw.dataset.key]));
@@ -263,6 +265,7 @@ const bindSwatches = (containerId, key) => {
 };
 bindSwatches('kb-themes', 'keyboardTheme');
 bindSwatches('mouse-colors', 'mouseColor');
+bindSwatches('cat-skins', 'catSkin');
 bindSwatches('cat-coats', 'catCoat');
 bindSwatches('eye-colors', 'eyeColor');
 
