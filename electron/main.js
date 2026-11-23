@@ -489,8 +489,17 @@ function createWindow() {
   let initX = def.x;
   let initY = def.y;
   if (currentSettings.windowPos && typeof currentSettings.windowPos.x === 'number') {
-    initX = Math.round(currentSettings.windowPos.x);
-    initY = Math.round(currentSettings.windowPos.y);
+    const savedX = Math.round(currentSettings.windowPos.x);
+    const savedY = Math.round(currentSettings.windowPos.y);
+    const onAnyDisplay = screen.getAllDisplays().some((d) => {
+      const b = d.bounds;
+      return savedX + winW > b.x + 40 && savedX < b.x + b.width - 40 &&
+             savedY + winH > b.y + 40 && savedY < b.y + b.height - 40;
+    });
+    if (onAnyDisplay) {
+      initX = savedX;
+      initY = savedY;
+    }
   }
 
   mainWindow = new BrowserWindow({
@@ -504,7 +513,6 @@ function createWindow() {
     transparent: true,
     thickFrame: false,
     focusable: false,
-    type: 'toolbar',
     backgroundColor: '#00000000',
     backgroundMaterial: 'none',
     alwaysOnTop: currentSettings.alwaysOnTop,

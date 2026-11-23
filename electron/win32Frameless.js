@@ -51,7 +51,10 @@ function stripStylesAndDwm(api, hwnd, forceFrameChanged = false) {
     styleChanged = true;
   }
 
-  api.DwmSetWindowAttribute(hwnd, 2, [1], 4);          // DWMWA_NCRENDERING_POLICY = DWMNCRP_DISABLED
+  // Keep DWMWA_NCRENDERING_POLICY at default USEWINDOWSTYLE (0):
+  // setting DWMNCRP_DISABLED (1) causes Windows to fall back to Classic GDI painting
+  // of a pale-blue gradient titlebar whenever Alt/focus/mouse-passthrough triggers WM_NCACTIVATE!
+  api.DwmSetWindowAttribute(hwnd, 2, [0], 4);          // DWMWA_NCRENDERING_POLICY = DWMNCRP_USEWINDOWSTYLE
   api.DwmSetWindowAttribute(hwnd, 33, [1], 4);         // DWMWA_WINDOW_CORNER_PREFERENCE = DWMWCP_DONOTROUND (Win11)
   api.DwmSetWindowAttribute(hwnd, 34, [0xFFFFFFFE], 4); // DWMWA_BORDER_COLOR = DWMWA_COLOR_NONE (Win11)
 
@@ -72,15 +75,12 @@ function installFramelessWin32Hook(win) {
     hookedWindows.add(win);
 
     if (typeof win.hookWindowMessage === 'function') {
-      // Safe Electron native message hooks: only re-apply when style/DWM/DPI actually changes
       const safeReapply = (force = false) => {
         if (!win || win.isDestroyed()) return;
         try {
           stripStylesAndDwm(api, getHwndNumber(win), force);
         } catch (_) {}
       };
-      win.hookWindowMessage(0x007D, () => safeReapply(false)); // WM_STYLECHANGED
-      win.hookWindowMessage(0x0086, () => safeReapply(false)); // WM_NCACTIVATE
       win.hookWindowMessage(0x031E, () => safeReapply(true));  // WM_DWMCOMPOSITIONCHANGED
       win.hookWindowMessage(0x02E0, () => safeReapply(true));  // WM_DPICHANGED
     }
