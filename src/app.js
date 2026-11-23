@@ -97,7 +97,10 @@ const state = {
     torsoYaw: 0, vTorsoYaw: 0, targetTorsoYaw: 0,
     torsoRoll: 0, vTorsoRoll: 0, targetTorsoRoll: 0,
     torsoScale: new THREE.Vector3(1, 1, 1),
-    hindTuck: 0
+    hindTuck: 0,
+    hindStand: 0,
+    hindPitch: 0,
+    hindKick: 0
   },
   jelly: { x: 0, vx: 0, targetX: 0, y: 0, vy: 0, targetY: 0 },
 
@@ -730,10 +733,27 @@ function update3DScene() {
 
   const targetHind = behOv ? (behOv.hindTuck || 0) : 0;
   r.hindTuck += (targetHind - r.hindTuck) * 0.16;
+  const targetStand = behOv ? (behOv.hindStand || 0) : 0;
+  r.hindStand += (targetStand - r.hindStand) * 0.18;
+  const targetHindPitch = behOv ? (behOv.hindPitch || 0) : 0;
+  r.hindPitch += (targetHindPitch - r.hindPitch) * 0.18;
+  const targetHindKick = behOv ? (behOv.hindKick || 0) : 0;
+  r.hindKick += (targetHindKick - r.hindKick) * 0.25;
+
   const ht = r.hindTuck;
-  const hScaleY = Math.max(0.26, 1 - 0.62 * ht);
-  rig.hindLegsGroup.scale.set(1 + 0.08 * ht, hScaleY, 1 - 0.22 * ht);
-  rig.hindLegsGroup.position.set(0, -0.77 * (1 - hScaleY), -0.14 * ht);
+  const hs = r.hindStand;
+  rig.hindLegsGroup.rotation.set(0, r.torsoYaw, 0);
+  const tuckScaleY = Math.max(0.20, (1 - 0.72 * ht) * (1 - hs));
+  const showTuck = hs < 0.88;
+  const showStand = hs > 0.06;
+  for (const [leg, dirSign] of [[rig.leftHindLeg, 1], [rig.rightHindLeg, -1]]) {
+    leg.tuckedGrp.visible = showTuck;
+    leg.tuckedGrp.scale.set(1 + 0.06 * ht, Math.max(0.01, tuckScaleY), Math.max(0.01, (1 - 0.26 * ht) * (1 - hs)));
+    leg.tuckedGrp.position.set(0, -0.25 * (1 - tuckScaleY), -0.14 * ht);
+    leg.standGrp.visible = showStand;
+    leg.standGrp.scale.set(1, Math.max(0.01, hs), 1);
+    leg.standGrp.rotation.set(r.hindPitch + dirSign * r.hindKick, 0, 0);
+  }
 
   rig.catRoot.position.x = 0.18 + r.bodyX;
   rig.catRoot.position.y = 0.02 + r.bodyY;
@@ -813,6 +833,9 @@ function update3DScene() {
   rig.rightEye3D.lowerLidPivot.rotation.x = lowerRot;
   if (rig.sleepEyesGroup) {
     rig.sleepEyesGroup.visible = Boolean(behOv && behOv.sleepEyes) && state.squintAmount > 0.90;
+  }
+  if (rig.happyEyesGroup) {
+    rig.happyEyesGroup.visible = Boolean(behOv && behOv.happyEyes) && state.squintAmount > 0.85;
   }
 
   // D. Virtual Mouse & 3D IK Arms
@@ -962,6 +985,7 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
   const prevBlush = rig.blushMat.opacity;
   const prevTongue = rig.tonguePivot.visible;
   const prevSleepEyes = rig.sleepEyesGroup ? rig.sleepEyesGroup.visible : false;
+  const prevHappyEyes = rig.happyEyesGroup ? rig.happyEyesGroup.visible : false;
   const prevTongueScale = rig.tonguePivot.scale.clone();
   const prevCamPos = camera.position.clone();
   const prevCamQuat = camera.quaternion.clone();
@@ -973,8 +997,10 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
     rig.torsoPivot.rotation.set(0, 0, 0);
     rig.torsoMesh.scale.set(1, 1, 1);
     rig.hindLegsGroup.scale.set(1, 1, 1);
-    rig.hindLegsGroup.position.set(0, 0, 0);
+    rig.hindLegsGroup.position.set(0, -0.52, -0.05);
+    rig.hindLegsGroup.rotation.set(0, 0, 0);
     if (rig.sleepEyesGroup) rig.sleepEyesGroup.visible = false;
+    if (rig.happyEyesGroup) rig.happyEyesGroup.visible = false;
     rig.leftEye3D.pupilPivot.rotation.set(0, 0, 0);
     rig.rightEye3D.pupilPivot.rotation.set(0, 0, 0);
 
@@ -1070,6 +1096,7 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
     rig.blushMat.opacity = prevBlush;
     rig.tonguePivot.visible = prevTongue;
     if (rig.sleepEyesGroup) rig.sleepEyesGroup.visible = prevSleepEyes;
+    if (rig.happyEyesGroup) rig.happyEyesGroup.visible = prevHappyEyes;
     rig.tonguePivot.scale.copy(prevTongueScale);
     camera.fov = prevFov;
     camera.updateProjectionMatrix();

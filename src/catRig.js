@@ -170,27 +170,50 @@ export function createCatRig(scene) {
   torsoMesh.position.set(0, 0.52, 0.05);
   torsoPivot.add(torsoMesh);
 
-  // Tucked hind thighs & feet
+  // Articulated hind legs (classic tucked sitting paws + standing/stretching/kicking 3D limbs!)
+  const hindLegsGroup = new THREE.Group();
+  hindLegsGroup.position.set(0, -0.52, -0.05);
+  catRoot.add(hindLegsGroup);
+
   function createHindLeg(side) {
-    const grp = new THREE.Group();
     const s = side === 'left' ? -1 : 1;
+    const root = new THREE.Group();
+
+    // 1. Tucked sitting leg (default work/typing silhouette)
+    const tuckedGrp = new THREE.Group();
     const thighGeo = new THREE.SphereGeometry(0.24, 28, 20);
     thighGeo.scale(0.92, 1.04, 1.06);
     const thigh = new THREE.Mesh(thighGeo, bodyFurMat);
-    thigh.position.set(s * 0.56, -0.62, 0.34);
-    grp.add(thigh);
+    thigh.position.set(s * 0.56, -0.10, 0.39);
+    tuckedGrp.add(thigh);
 
     const footGeo = new THREE.SphereGeometry(0.175, 28, 22);
     footGeo.scale(1.06, 0.70, 1.15);
     const foot = new THREE.Mesh(footGeo, limbFurMat);
-    foot.position.set(s * 0.56, -0.77, 0.54);
-    grp.add(foot);
-    return grp;
+    foot.position.set(s * 0.56, -0.25, 0.59);
+    tuckedGrp.add(foot);
+    root.add(tuckedGrp);
+
+    // 2. Standing / extending / kicking articulated leg (pivoted at hip)
+    const standGrp = new THREE.Group();
+    standGrp.position.set(s * 0.42, -0.02, -0.02);
+    standGrp.visible = false;
+    const upperLeg = new THREE.Mesh(new THREE.SphereGeometry(0.22, 22, 16), bodyFurMat);
+    upperLeg.scale.set(0.88, 1.15, 0.95);
+    upperLeg.position.set(0, -0.10, 0);
+    const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.145, 0.125, 0.42, 20), limbFurMat);
+    calf.position.set(0, -0.34, 0.02);
+    const standPaw = new THREE.Mesh(new THREE.SphereGeometry(0.155, 22, 16), limbFurMat);
+    standPaw.scale.set(1.0, 0.68, 1.22);
+    standPaw.position.set(0, -0.55, 0.08);
+    standGrp.add(upperLeg, calf, standPaw);
+    root.add(standGrp);
+
+    return { root, tuckedGrp, standGrp };
   }
-  const hindLegsGroup = new THREE.Group();
-  hindLegsGroup.add(createHindLeg('left'));
-  hindLegsGroup.add(createHindLeg('right'));
-  catRoot.add(hindLegsGroup);
+  const leftHindLeg = createHindLeg('left');
+  const rightHindLeg = createHindLeg('right');
+  hindLegsGroup.add(leftHindLeg.root, rightHindLeg.root);
 
   // Tail (joint-origin tailPivot prevents tailTip detachment on high raises)
   const tailPivot = new THREE.Group();
@@ -310,19 +333,38 @@ export function createCatRig(scene) {
   headCenterGroup.add(leftEye3D.eyeSocket);
   headCenterGroup.add(rightEye3D.eyeSocket);
 
-  // Cute silver-white closed sleeping eye crescents (visible only during nap / exhausted!)
+  // Cute silver-white closed sleeping eye crescents (∪ ∪) & happy eye arcs (^ ^)
   const sleepEyesGroup = new THREE.Group();
   sleepEyesGroup.visible = false;
-  const sleepArcMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0 });
-  const sleepArcGeo = new THREE.TorusGeometry(0.10, 0.015, 8, 20, Math.PI);
+  const happyEyesGroup = new THREE.Group();
+  happyEyesGroup.visible = false;
+  const eyeArcMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0 });
+  const eyeArcGeo = new THREE.TorusGeometry(0.10, 0.015, 8, 20, Math.PI);
   for (const s of [-1, 1]) {
-    const arc = new THREE.Mesh(sleepArcGeo, sleepArcMat);
-    arc.position.set(s * 0.195, 0.03, 0.615);
-    arc.rotation.y = s * 0.14;
-    arc.rotation.z = Math.PI + s * -0.06;
-    sleepEyesGroup.add(arc);
+    const sleepArc = new THREE.Mesh(eyeArcGeo, eyeArcMat);
+    sleepArc.position.set(s * 0.195, 0.03, 0.615);
+    sleepArc.rotation.y = s * 0.14;
+    sleepArc.rotation.z = Math.PI + s * -0.06;
+    sleepEyesGroup.add(sleepArc);
+
+    const happyArc = new THREE.Mesh(eyeArcGeo, eyeArcMat);
+    happyArc.position.set(s * 0.195, -0.02, 0.615);
+    happyArc.rotation.y = s * 0.14;
+    happyArc.rotation.z = s * -0.08;
+    happyEyesGroup.add(happyArc);
   }
   headCenterGroup.add(sleepEyesGroup);
+  headCenterGroup.add(happyEyesGroup);
+
+  // Tiny soft pink cat nose
+  const noseGeo = new THREE.SphereGeometry(0.036, 14, 12);
+  noseGeo.scale(1.25, 0.82, 0.75);
+  const noseMesh = new THREE.Mesh(
+    noseGeo,
+    new THREE.MeshStandardMaterial({ color: 0xf9a8d4, roughness: 0.45 })
+  );
+  noseMesh.position.set(0, -0.105, 0.595);
+  headCenterGroup.add(noseMesh);
 
   // Tiny cute 3D Pink Cat Tongue (hidden at rest, peeks during Churu lick, groom, or yawn!)
   const tonguePivot = new THREE.Group();
@@ -599,6 +641,8 @@ export function createCatRig(scene) {
     torsoPivot,
     torsoMesh,
     hindLegsGroup,
+    leftHindLeg,
+    rightHindLeg,
     tailPivot,
     tailMesh,
     tailTip,
@@ -612,6 +656,7 @@ export function createCatRig(scene) {
     leftEye3D,
     rightEye3D,
     sleepEyesGroup,
+    happyEyesGroup,
     tonguePivot,
     blushMat,
     rightArm3D,

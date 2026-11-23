@@ -463,7 +463,7 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       ov.tailSpeed = 0.015;
       ov.hindTuck = 0.90;
       if (styleIdx === 0) {
-        // 款A: 左侧卧枕爪睡（经典款，头在左、背向右延伸、尾巴右舒）
+        // 款A: 左侧卧枕爪睡（对齐趴睡参考图：头在左枕水平前臂、圆润背脊向右延伸、后腿平伸、尾巴右舒）
         ov.bodyX = 0.52;
         ov.bodyY = -0.14 + br * 0.012;
         ov.bodyZ = -0.16;
@@ -474,7 +474,9 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
         ov.yaw = 1.15;
         ov.roll = -0.12;
         ov.tailHigh = -1.45;
-        ov.torsoScale = new THREE.Vector3(0.96, 1.18, 0.78);
+        ov.hindStand = 0.72;
+        ov.hindPitch = 1.38;
+        ov.torsoScale = new THREE.Vector3(1.02, 1.24, 0.84);
         ov.leftPawPos = new THREE.Vector3(-1.12, -0.76, 0.50);
         ov.rightPawPos = new THREE.Vector3(-1.38, -0.76, 0.22);
         ov.leftElbowOffset = new THREE.Vector3(0.08, -0.06, 0.14);
@@ -491,7 +493,9 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
         ov.yaw = -1.15;
         ov.roll = 0.12;
         ov.tailHigh = -1.30;
-        ov.torsoScale = new THREE.Vector3(0.96, 1.18, 0.78);
+        ov.hindStand = 0.72;
+        ov.hindPitch = 1.38;
+        ov.torsoScale = new THREE.Vector3(1.02, 1.24, 0.84);
         ov.rightPawPos = new THREE.Vector3(1.12, -0.76, 0.50);
         ov.leftPawPos = new THREE.Vector3(1.38, -0.76, 0.22);
         ov.rightElbowOffset = new THREE.Vector3(-0.08, -0.06, 0.14);
@@ -540,19 +544,21 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
 
       if (t > 16 && t < behavior.duration - 35) {
         const chew = Math.sin(t * (v === 1 ? 0.55 : 0.42));
-        ov.bodyX = 0.40;
-        ov.bodyY = -0.14 + Math.max(0, chew) * (v === 1 ? 0.05 : 0.025);
-        ov.bodyZ = 0.10;
-        ov.torsoYaw = 0.56;
-        ov.torsoPitch = 0.74 + chew * (v === 1 ? 0.14 : 0.08);
+        ov.bodyX = 0.36;
+        ov.bodyY = 0.12 + Math.max(0, chew) * (v === 1 ? 0.04 : 0.02);
+        ov.bodyZ = 0.08;
+        ov.torsoYaw = 0.62;
+        ov.torsoPitch = 0.96 + chew * (v === 1 ? 0.12 : 0.08);
         ov.torsoRoll = v === 1 ? Math.sin(t * 0.28) * 0.08 : 0;
-        ov.yaw = 0.14;
-        ov.pitch = 0.16 + chew * 0.16;
-        ov.squint = 0.78;
+        ov.yaw = 0.10;
+        ov.pitch = 0.18 + chew * 0.14;
+        ov.squint = 1.12;
+        ov.happyEyes = true;
         ov.blush = 0.40;
         ov.tailSpeed = v === 1 ? 0.30 : 0.14;
-        ov.tailHigh = v === 1 ? 0.75 : 0.10;
-        ov.hindTuck = 0.55;
+        ov.tailHigh = v === 1 ? 0.75 : 0.15;
+        ov.hindStand = 0.95;
+        ov.hindPitch = 0.08;
         ov.rightPawPos = new THREE.Vector3(0.28, -0.76, 0.86);
         ov.leftPawPos = new THREE.Vector3(0.76, -0.76, 0.72);
         rig.tonguePivot.visible = t % 14 < 7;
@@ -615,7 +621,8 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       ov.roll = sway * 1.1;
       ov.dilate = 1.48;
       ov.blush = 0.44;
-      ov.squint = v === 1 ? 0.85 : 0.68;
+      ov.squint = 1.12;
+      ov.happyEyes = true;
       ov.tailSpeed = v === 1 ? 0.28 : 0.16;
       ov.tailHigh = v === 1 ? 0.65 : 0.15;
 
@@ -771,7 +778,8 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
         ov.yaw = side * 0.32;
         ov.pitch = 0.22 + Math.sin(a) * 0.08;
         ov.roll = -side * (0.32 + Math.cos(a) * 0.06);
-        ov.squint = 1.0;
+        ov.squint = 1.12;
+        ov.happyEyes = true;
         const paw = new THREE.Vector3(side * 0.34 + Math.cos(a) * 0.12, 0.72 + Math.sin(a) * 0.16, 0.62);
         const elb = new THREE.Vector3(side * 0.22, 0.02, 0.10);
         if (side < 0) { ov.rightPawPos = paw; ov.rightElbowOffset = elb; }
@@ -788,17 +796,19 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       const p = t < 35 ? t / 35 : (t > 155 ? Math.max(0, (behavior.duration - t) / 35) : 1);
       const s = v === 1 ? -1 : 1; // +1 = stretch left (head left), -1 = stretch right (head right)
       ov.bodyX = s * 0.56 * p;
-      ov.bodyY = 0.06 * p;
+      ov.bodyY = 0.22 * p;
       ov.bodyZ = -0.20 * p;
       ov.torsoYaw = -s * 1.25 * p;
       ov.torsoPitch = 1.46 * p;
       ov.pitch = -1.32 * p;
       ov.yaw = s * 0.92 * p;
       ov.roll = -s * 0.08 * p;
-      ov.squint = 0.92 * p;
+      ov.squint = 1.12 * p;
+      ov.happyEyes = p > 0.6;
       ov.tailHigh = 0.95 * p + (t > 45 && t < 145 ? Math.sin(t * 0.7) * 0.06 : 0);
       ov.tailBack = -1.35 * p;
-      ov.hindTuck = 0.0;
+      ov.hindStand = 1.0 * p;
+      ov.hindPitch = 0.05;
       if (s > 0) {
         ov.leftPawPos = new THREE.Vector3(-0.30 - 1.15 * p, -0.78, 0.78 - 0.38 * p);
         ov.rightPawPos = new THREE.Vector3(-0.30 - 1.28 * p, -0.78, 0.78 - 0.66 * p);
@@ -827,8 +837,9 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
       ov.pitch = v === 1 ? -0.52 : -0.38;
       ov.yaw = v === 1 ? 0.52 : 0;
       ov.roll = v === 1 ? -0.10 : 0;
-      ov.squint = v === 1 ? 0.82 : 0.70;
-      ov.blush = 0.26;
+      ov.squint = 1.12;
+      ov.happyEyes = true;
+      ov.blush = 0.34;
       ov.tailSpeed = 0.02;
       ov.tailHigh = v === 1 ? -0.85 : -0.35;
       ov.hindTuck = 0.98;
@@ -921,6 +932,9 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
         ov.yaw = -dir * 0.45;
         ov.roll = -dir * 0.14;
         ov.torsoScale = new THREE.Vector3(0.92, 1.16, 0.82);
+        ov.hindStand = 1.0;
+        ov.hindPitch = 1.12;
+        ov.hindKick = stride * 0.42;
         ov.leftPawPos = new THREE.Vector3(dir * (0.92 + stride * 0.32), -0.58 + Math.max(0, stride) * 0.26, 0.42);
         ov.rightPawPos = new THREE.Vector3(dir * (0.92 - stride * 0.32), -0.58 + Math.max(0, -stride) * 0.26, 0.12);
       }
@@ -953,12 +967,13 @@ export function createBehaviorSystem({ rig, props, state, userSettings, gameStat
           behavior.bugPos.y += (ty - behavior.bugPos.y) * 0.04;
           // 3/4 Flat predator crouch + butt-wiggle ekekek!
           ov.bodyX = s * 0.42;
-          ov.bodyY = -0.18;
+          ov.bodyY = 0.14;
           ov.bodyZ = -0.18;
           ov.torsoYaw = -s * 1.05;
-          ov.torsoPitch = 1.38;
+          ov.torsoPitch = 1.40;
           ov.torsoRoll = Math.sin(t * 0.55) * 0.14;
-          ov.hindTuck = 0.65;
+          ov.hindStand = 0.90;
+          ov.hindPitch = 0.12;
           ov.torsoScale = new THREE.Vector3(0.96, 1.14, 0.78);
           ov.yaw = s * 0.72 + Math.max(-0.22, Math.min(0.22, (behavior.bugPos.x + s * 0.5) * 0.2));
           ov.pitch = -1.36 + Math.sin(t * 1.1) * 0.05;
