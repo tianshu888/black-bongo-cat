@@ -180,6 +180,7 @@ input[type="range"] { width: 100%; accent-color: #a3e635; cursor: pointer; }
 .swatch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .swatch-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
 .swatch-grid.cols-5 { grid-template-columns: repeat(5, 1fr); }
+#classic-cat-appearance[hidden] { display: none; }
 .swatch {
   display: flex; align-items: center; gap: 6px; padding: 6px 7px; border-radius: 7px;
   background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);

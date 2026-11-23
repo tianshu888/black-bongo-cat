@@ -232,7 +232,7 @@ function renderSettingsUI(cfg) {
   markGroup('cat-skins', localCfg.catSkin || 'smoke');
   markGroup('cat-coats', localCfg.catCoat || 'smoke');
   markGroup('eye-colors', localCfg.eyeColor || 'lime');
-  document.getElementById('classic-cat-appearance').hidden = false;
+  document.getElementById('classic-cat-appearance').hidden = (localCfg.catSkin || 'smoke') !== 'classic';
 
   document.querySelectorAll('.switch[data-key]').forEach((sw) => {
     sw.classList.toggle('on', Boolean(localCfg[sw.dataset.key]));

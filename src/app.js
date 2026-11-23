@@ -3,6 +3,7 @@ import { createCatRig } from './catRig.js';
 import { createProps } from './props.js';
 import { createBehaviorSystem } from './behaviors.js';
 import { getCareerInfo } from './careers.js';
+import { createSmokeCatSkin } from './smokeCatSkin.js';
 
 /**
  * Black Bongo Cat 3D Desktop Pet (v2.0)
@@ -12,6 +13,8 @@ import { getCareerInfo } from './careers.js';
  */
 
 const canvas = document.getElementById('pet-canvas');
+const skinCanvas = document.getElementById('pet-skin');
+const smokeSkin = skinCanvas ? createSmokeCatSkin(skinCanvas) : null;
 let W = 500;
 let H = 390;
 
@@ -19,6 +22,7 @@ const userSettings = {
   scale: 1.0,
   keyboardTheme: 'classic',
   mouseColor: 'white',
+  catSkin: 'smoke',
   catCoat: 'smoke',
   eyeColor: 'lime',
   equippedAccessory: 'none',
@@ -250,20 +254,31 @@ const raycaster = new THREE.Raycaster();
 const ndcPointer = new THREE.Vector2();
 let lastIgnoreMouseState = true;
 
+function isSmokeSkinActive() {
+  return Boolean(smokeSkin && (userSettings.catSkin || 'smoke') === 'smoke');
+}
+
 function updateClickThrough(winX, winY) {
   ndcPointer.set((winX / W) * 2 - 1, -(winY / H) * 2 + 1);
   raycaster.setFromCamera(ndcPointer, camera);
-
-  const catHits = raycaster.intersectObject(rig.catRoot, true);
-  const propHits = raycaster.intersectObjects([props.keyboardGroup, props.mouseGroup], true);
 
   const activeToyMeshes = [];
   if (props.yarnGroup.visible) activeToyMeshes.push(props.yarnGroup);
   if (props.bugGroup.visible) activeToyMeshes.push(props.bugGroup);
   const toyHits = activeToyMeshes.length ? raycaster.intersectObjects(activeToyMeshes, true) : [];
 
-  const overCat = catHits.length > 0;
-  const overProp = !overCat && propHits.length > 0;
+  let overCat = false;
+  let overProp = false;
+  if (isSmokeSkinActive()) {
+    const skinHit = smokeSkin.hitTest(winX, winY);
+    overCat = skinHit === 'cat';
+    overProp = skinHit === 'prop';
+  } else {
+    const catHits = raycaster.intersectObject(rig.catRoot, true);
+    const propHits = raycaster.intersectObjects([props.keyboardGroup, props.mouseGroup], true);
+    overCat = catHits.length > 0;
+    overProp = !overCat && propHits.length > 0;
+  }
   const overToy = toyHits.length > 0;
 
   state.isOverCat = overCat;
@@ -1067,6 +1082,11 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, 240, 240);
 
+    if (isSmokeSkinActive() && smokeSkin.drawPortrait(ctx, pose)) {
+      if (window.catSound && window.catSound.playBell) window.catSound.playBell();
+      return out.toDataURL('image/png');
+    }
+
     const srcSide = Math.min(canvas.width, canvas.height) * 0.90;
     const sx = (canvas.width - srcSide) / 2;
     const sy = (canvas.height - srcSide) / 2;
@@ -1108,7 +1128,38 @@ function captureStudioCatPhoto(pose = 'normal', theme = 'blue') {
 
 function animate() {
   update3DScene();
+
+  const useSmoke = isSmokeSkinActive();
+  if (smokeSkin) {
+    smokeSkin.draw({
+      enabled: useSmoke,
+      behavior: behaviors.behavior,
+      input: state,
+      width: W,
+      height: H,
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
+      motion: state.rigSpring
+    });
+  }
+
+  let restoreBaked = null;
+  if (useSmoke) {
+    rig.catRoot.visible = false;
+    props.keyboardGroup.visible = false;
+    props.mouseGroup.visible = false;
+    const bakedName = smokeSkin.frame && smokeSkin.frame.bakedProp;
+    if (bakedName && props[bakedName] && props[bakedName].visible) {
+      restoreBaked = props[bakedName];
+      restoreBaked.visible = false;
+    }
+  } else {
+    rig.catRoot.visible = true;
+    props.keyboardGroup.visible = true;
+    props.mouseGroup.visible = true;
+  }
+
   renderer.render(scene, camera);
+  if (restoreBaked) restoreBaked.visible = true;
   requestAnimationFrame(animate);
 }
 
