@@ -14,7 +14,9 @@ import { createSmokeCatSkin } from './smokeCatSkin.js';
 
 const canvas = document.getElementById('pet-canvas');
 const skinCanvas = document.getElementById('pet-skin');
-const smokeSkin = skinCanvas ? createSmokeCatSkin(skinCanvas) : null;
+const smokeSkin = skinCanvas ? createSmokeCatSkin(skinCanvas, {
+  onKeyContact: ({ repeat, space, key }) => activateDeskKey(key, repeat, space)
+}) : null;
 let W = 500;
 let H = 390;
 
@@ -169,6 +171,14 @@ const behaviors = createBehaviorSystem({
 // ============================================================================
 const tempWorldVec = new THREE.Vector3();
 const tempKeyPosWorld = new THREE.Vector3();
+const tempKeyPosScreen = new THREE.Vector3();
+
+function activateDeskKey(key, repeat, space) {
+  state.activeKeys.set(key.id, performance.now() + 140);
+  if (repeat) return;
+  window.catSound.playKeyClick(space);
+  if (userSettings.showImpactGlow) props.spawnKeyImpact(key.localPos, userSettings.keyboardTheme);
+}
 
 function triggerKeyPress(data) {
   const k = props.keyMap3D.get(data.id) ||
@@ -186,23 +196,18 @@ function triggerKeyPress(data) {
     return;
   }
 
-  state.activeKeys.set(k.id, performance.now() + 140);
-
   if (!data.isRepeat) {
-    window.catSound.playKeyClick(data.isSpace || k.id === 'Space');
     behaviors.onWorkKey(tempKeyPosWorld);
-    if (userSettings.showImpactGlow) {
-      props.spawnKeyImpact(k.localPos, userSettings.keyboardTheme);
-    }
-    if (userSettings.showFloatingKeys) {
-      props.spawnFloatingKeycap({
-        label: data.label || k.label,
-        isSpace: data.isSpace || k.id === 'Space',
-        isCaps: data.isCaps || k.id === 'CapsLock'
-      });
-    }
   } else {
     behaviors.markActiveWork();
+  }
+
+  const useTrackedDesk = isSmokeSkinActive() && smokeSkin.supportsTracking &&
+    behaviors.behavior.mode === 'work' && !state.isPetting;
+  const space = data.isSpace || k.id === 'Space';
+  if (!useTrackedDesk) activateDeskKey(k, data.isRepeat, space);
+  if (!data.isRepeat && userSettings.showFloatingKeys) {
+    props.spawnFloatingKeycap({ label: data.label || k.label, isSpace: space, isCaps: data.isCaps || k.id === 'CapsLock' });
   }
 
   tempWorldVec.copy(tempKeyPosWorld);
@@ -235,13 +240,23 @@ function triggerKeyPress(data) {
   }
 
   const keyRelX = Math.max(-1.0, Math.min(1.0, -k.localPos.x / 0.92));
+  if (useTrackedDesk) {
+    tempKeyPosScreen.copy(tempKeyPosWorld).project(camera);
+    smokeSkin.pressKey({
+      now: performance.now(), keyboardX: keyRelX, row: k.row,
+      viewerLeft: useRightHand && !holdingMouseBtn, repeat: data.isRepeat,
+      space, key: k, holdingMouse: holdingMouseBtn, width: W, height: H,
+      screenX: (tempKeyPosScreen.x + 1) * W / 2,
+      screenY: (1 - tempKeyPosScreen.y) * H / 2
+    });
+  } else {
+    state.kbRecoil.vy -= 0.036;
+    state.kbRecoil.vTiltX += 0.026;
+    state.kbRecoil.vTiltZ -= keyRelX * 0.024;
+  }
   state.typingFocusX = keyRelX * 0.96;
   state.typingFocusY = -0.78 - (k.row / 5) * 0.22;
   state.typingLookTimer = 26;
-
-  state.kbRecoil.vy -= 0.036;
-  state.kbRecoil.vTiltX += 0.026;
-  state.kbRecoil.vTiltZ -= keyRelX * 0.024;
 
   state.rigSpring.vPitch += 0.075;
   state.rigSpring.vYaw += keyRelX * 0.11;
@@ -269,10 +284,11 @@ function updateClickThrough(winX, winY) {
 
   let overCat = false;
   let overProp = false;
-  if (isSmokeSkinActive()) {
+  if (isSmokeSkinActive() && smokeSkin.frame) {
     const skinHit = smokeSkin.hitTest(winX, winY);
     overCat = skinHit === 'cat';
-    overProp = skinHit === 'prop';
+    const deskProps = smokeSkin.frame.atDesk ? [props.keyboardGroup, props.mouseGroup] : [];
+    overProp = skinHit === 'prop' || (!overCat && raycaster.intersectObjects(deskProps, true).length > 0);
   } else {
     const catHits = raycaster.intersectObject(rig.catRoot, true);
     const propHits = raycaster.intersectObjects([props.keyboardGroup, props.mouseGroup], true);
@@ -1143,11 +1159,12 @@ function animate() {
   }
 
   let restoreBaked = null;
-  if (useSmoke) {
+  const skinFrame = useSmoke && smokeSkin.frame;
+  if (skinFrame) {
     rig.catRoot.visible = false;
     props.keyboardGroup.visible = false;
     props.mouseGroup.visible = false;
-    const bakedName = smokeSkin.frame && smokeSkin.frame.bakedProp;
+    const bakedName = skinFrame.bakedProp;
     if (bakedName && props[bakedName] && props[bakedName].visible) {
       restoreBaked = props[bakedName];
       restoreBaked.visible = false;
